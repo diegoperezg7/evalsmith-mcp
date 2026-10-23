@@ -24,6 +24,8 @@ evalsmith answers four questions that come up every time a retriever, prompt or 
 
 Everything is deterministic and runs offline. An LLM judge exists for a second opinion, but it is off by default and never decides the verdict.
 
+<p align="center"><img src="docs/assets/cli.gif" alt="evalsmith run: retrieval metrics, config comparison, tool-call check, prompt regression and a failing CI gate" width="100%" /></p>
+
 ---
 
 ## Interfaces over the same core

@@ -1,0 +1,45 @@
+# Copy to .github/workflows/evals.yml in the repository that owns your RAG or agent.
+# It fails the pull request when a gate is below its threshold or a prompt change regresses.
+name: evals
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks: write # publish the JUnit report as a check run
+
+jobs:
+  evalsmith:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install evalsmith
+        run: npm install --no-save github:diegoperezg7/evalsmith-mcp
+
+      # Produce the files your suite points at, e.g. run every eval query through
+      # the retriever and save { queryId: [docId, ...] } as evals/runs/current.json.
+      # - run: npm run evals:retrieve
+
+      - name: Run the suite
+        run: >
+          npx evalsmith run evals/evalsmith.yaml
+          --fail-under recall@5=0.8
+          --fail-under ndcg@10=0.7
+          --format markdown
+          --report evalsmith-report.xml
+          >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: evalsmith-report.xml
+          check_name: evalsmith

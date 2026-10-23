@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "evalsmith": {
+      "command": "node",
+      "args": ["/absolute/path/to/evalsmith-mcp/dist/mcp/server.js"],
+      "env": {
+        "LOG_LEVEL": "warn"
+      }
+    }
+  }
+}

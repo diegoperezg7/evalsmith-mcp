@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-43853d?logo=node.js&logoColor=white)](.nvmrc)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-1.32-c2410c)](https://github.com/modelcontextprotocol/typescript-sdk)
-[![Tests](https://img.shields.io/badge/tests-65%20passing-2ea44f)](tests)
+[![Tests](https://img.shields.io/badge/tests-66%20passing-2ea44f)](tests)
 [![Paid API keys](https://img.shields.io/badge/paid%20API%20keys-none-555)](#design-decisions)
 [![License](https://img.shields.io/badge/license-proprietary-lightgrey)](LICENSE)
 
@@ -215,7 +215,7 @@ The optional judge sends both outputs to any OpenAI-compatible `/chat/completion
 git clone https://github.com/diegoperezg7/evalsmith-mcp.git
 cd evalsmith-mcp
 npm ci            # also builds dist/ through the prepare script
-npm test          # 65 tests: metrics, MCP in-memory + HTTP, CLI exit codes
+npm test          # 66 tests: metrics, MCP in-memory + HTTP, CLI exit codes
 
 node dist/cli/index.js run examples/evalsmith.yaml
 ```

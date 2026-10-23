@@ -53,12 +53,30 @@ export function buildServer(deps: ServerDeps): McpServer {
   return server;
 }
 
+/** Generous for qrels, runs and golden sets; bounds memory per request. */
+export const MAX_BODY_BYTES = 10 * 1024 * 1024;
+
+class BodyTooLargeError extends Error {}
+
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
-  for await (const chunk of req)
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  let size = 0;
+  for await (const chunk of req) {
+    const buf = typeof chunk === "string" ? Buffer.from(chunk) : (chunk as Buffer);
+    size += buf.length;
+    if (size > MAX_BODY_BYTES) throw new BodyTooLargeError();
+    chunks.push(buf);
+  }
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw.trim() ? JSON.parse(raw) : undefined;
+}
+
+function rejectRequest(err: unknown): { status: number; code: number; message: string } {
+  if (err instanceof BodyTooLargeError) {
+    return { status: 413, code: -32600, message: `Request body exceeds ${MAX_BODY_BYTES} bytes` };
+  }
+  if (err instanceof SyntaxError) return { status: 400, code: -32700, message: "Parse error" };
+  return { status: 500, code: -32603, message: "Internal error" };
 }
 
 /**
@@ -105,19 +123,13 @@ export function createHttpApp(deps: ServerDeps): Server {
       await server.connect(transport);
       await transport.handleRequest(req, res, body);
     } catch (err) {
-      const parseError = err instanceof SyntaxError;
-      if (parseError) logger.warn("Rejected request with malformed JSON body");
-      else logger.error({ err }, "HTTP request failed");
+      const { status, code, message } = rejectRequest(err);
+      if (status === 500) logger.error({ err }, "HTTP request failed");
+      else logger.warn({ status }, message);
       if (!res.headersSent) {
-        res.writeHead(parseError ? 400 : 500, { "content-type": "application/json" }).end(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            error: parseError
-              ? { code: -32700, message: "Parse error" }
-              : { code: -32603, message: "Internal error" },
-            id: null,
-          }),
-        );
+        res
+          .writeHead(status, { "content-type": "application/json", connection: "close" })
+          .end(JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }));
       }
     }
   });

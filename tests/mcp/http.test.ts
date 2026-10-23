@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
-import { createHttpApp } from "../../src/mcp/server.js";
+import { MAX_BODY_BYTES, createHttpApp } from "../../src/mcp/server.js";
 import { loadConfig } from "../../src/shared/config.js";
 
 let app: Server;
@@ -56,5 +56,18 @@ describe("Streamable HTTP (stateless)", () => {
     });
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: { code: -32700 } });
+  });
+
+  it("rejects bodies over the size limit with 413", async () => {
+    const res = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ padding: "x".repeat(MAX_BODY_BYTES) }),
+    });
+    expect(res.status).toBe(413);
+    expect(await res.json()).toMatchObject({ error: { code: -32600 } });
   });
 });

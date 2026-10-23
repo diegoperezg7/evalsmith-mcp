@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-43853d?logo=node.js&logoColor=white)](.nvmrc)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-1.32-c2410c)](https://github.com/modelcontextprotocol/typescript-sdk)
-[![Tests](https://img.shields.io/badge/tests-66%20passing-2ea44f)](tests)
+[![Tests](https://img.shields.io/badge/tests-82%20passing-2ea44f)](tests)
 [![Paid API keys](https://img.shields.io/badge/paid%20API%20keys-none-555)](#design-decisions)
 [![License](https://img.shields.io/badge/license-proprietary-lightgrey)](LICENSE)
 
@@ -69,7 +69,7 @@ flowchart TB
         T5[generate_report]
     end
     subgraph Resources
-        R1["evalsmith://examples/{name}<br/>13 synthetic datasets + suite"]
+        R1["evalsmith://examples/{name}<br/>12 synthetic datasets + suite"]
     end
     subgraph Prompts
         P1[compare_rag_configs]
@@ -90,7 +90,7 @@ flowchart TB
 
 ### Tools
 
-Every tool declares an input and an output Zod schema, returns `structuredContent` plus a JSON text block, and is annotated `readOnly`, `idempotent` and closed-world.
+Every tool declares an input and an output Zod schema, returns `structuredContent` plus a JSON text block, and is annotated `readOnly`. Four tools are also idempotent and closed-world. `detect_prompt_regression` is declared open-world and non-idempotent: annotations are per tool, and with the judge enabled it calls an external model whose answers can vary. With the judge off (the default) it behaves like the others.
 
 | Tool                       | Input                                                                                 | Output                                                                                             |
 | -------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -100,7 +100,7 @@ Every tool declares an input and an output Zod schema, returns `structuredConten
 | `detect_prompt_regression` | `golden`, `baseline`, `candidate`, optional `judge {enabled}`                         | Verdict, pass rates, regressions, improvements, per-case failures, judge votes when enabled        |
 | `generate_report`          | Any of the results above, `gates`, `format: markdown \| json \| junit`                | `passed`, rendered report                                                                          |
 
-Bad input (unknown metric, duplicate config names, qrels with no relevant documents) comes back as a tool error with a message the model can act on.
+Bad input (unknown metric, duplicate config names, qrels with no relevant documents) comes back as an `InvalidParams` tool error with a message the model can act on. A judge endpoint that is down or returns an HTTP error is an `InternalError`.
 
 ### Resources
 
@@ -179,6 +179,8 @@ Conventions, all covered by tests:
 - Queries whose judgements are all 0 are skipped and listed in `skippedQueries`.
 - Judged queries missing from the run score 0 and are listed in `missingFromRun`.
 - Precision divides by $k$, not by the ranking length.
+- Repeated document ids in a ranking keep only their first position, as in `trec_eval`, so a run cannot score above 1 by repeating a relevant document.
+- Cut-offs start at 1: `recall@0` is rejected.
 
 **Worked example** ([`tests/core/retrieval.test.ts`](tests/core/retrieval.test.ts)): judgements `a=2, b=1, c=0`, ranking `d, a, e, b, c`.
 DCG@5 $= 2/\log_2 3 + 1/\log_2 5 = 1.69254$, IDCG@5 $= 2/\log_2 2 + 1/\log_2 3 = 2.63093$, so nDCG@5 $= 0.64332$; recall@3 $= 0.5$, precision@5 $= 0.4$, RR $= 0.5$.
@@ -199,13 +201,13 @@ DCG@5 $= 2/\log_2 3 + 1/\log_2 5 = 1.69254$, IDCG@5 $= 2/\log_2 2 + 1/\log_2 3 =
 }
 ```
 
-`strict` requires the trace to be exactly the expected calls in order. `lax` matches each expected call to any unused call, ignores order and reports extra calls without failing.
+`strict` requires the trace to be exactly the expected calls in order; calls past the expected sequence fail the check and appear as failed test cases in JUnit. `lax` ignores order and pairs expected calls with trace calls by maximum bipartite matching (augmenting paths), so a loose matcher never steals the only call a stricter one accepts. Extra calls are reported without failing. Every matcher, `exact` included, fails when the argument is missing.
 
 ### Prompt checks
 
 `exact` (trimmed by default), `regex`, `contains` (case-insensitive by default), `json_schema` (the output is parsed and validated with Ajv) and `length` (`min` / `max` characters). A **regression** is a case that passes on the baseline and fails on the candidate. Missing outputs count as failures.
 
-The optional judge sends both outputs to any OpenAI-compatible `/chat/completions` endpoint, Ollama included, at temperature 0 and labelled A/B. Its votes are reported next to the verdict.
+The optional judge sends both outputs to any OpenAI-compatible `/chat/completions` endpoint, Ollama included, at temperature 0. To cancel position bias each case is judged twice, with baseline as answer A and then as answer B. A side wins only when both orderings agree; a disagreement counts as a tie. That costs two requests per case. Its votes are reported next to the verdict.
 
 ---
 
@@ -215,7 +217,7 @@ The optional judge sends both outputs to any OpenAI-compatible `/chat/completion
 git clone https://github.com/diegoperezg7/evalsmith-mcp.git
 cd evalsmith-mcp
 npm ci            # also builds dist/ through the prepare script
-npm test          # 66 tests: metrics, MCP in-memory + HTTP, CLI exit codes
+npm test          # 82 tests: metrics, MCP in-memory + HTTP, CLI exit codes
 
 node dist/cli/index.js run examples/evalsmith.yaml
 ```
@@ -271,7 +273,7 @@ Gates accept `recall@k`, `precision@k`, `ndcg@k`, `hit_rate@k`, `mrr`, `tool_cal
 | --------- | -------------------------------------------------------------------------------------- |
 | `0`       | Every gate passed, no regression                                                       |
 | `1`       | A gate is below its threshold, the candidate regressed, or the tool calls do not match |
-| `2`       | Invalid config, unknown metric, unreadable dataset                                     |
+| `2`       | Usage error, invalid config, unknown metric, unreadable dataset, judge endpoint down   |
 
 ### Real output
 

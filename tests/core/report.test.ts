@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  checkToolCalls,
   evaluateGates,
   generateReport,
   loadSuiteConfig,
@@ -81,5 +82,48 @@ describe("suite + reports", () => {
     expect(md).toContain("**Result: PASS**");
     expect(md).toContain("| recall@5 | 0.8000 | 0.9167 | pass |");
     expect(JSON.parse(generateReport(suite, "json")).passed).toBe(true);
+  });
+
+  it("JUnit fails on an unexpected strict call, matching the CLI exit code", () => {
+    const trace = [
+      { tool: "a", args: {} },
+      { tool: "b", args: {} },
+    ];
+    const expected = [{ tool: "a", args: {} }];
+
+    const strict: SuiteResult = {
+      name: "agent",
+      toolCalls: checkToolCalls(trace, expected, "strict"),
+      gates: [],
+    };
+    expect(suitePassed(strict)).toBe(false);
+    const xml = generateReport(strict, "junit");
+    expect(xml).toContain('<testsuite name="tool_calls" tests="2" failures="1">');
+    expect(xml).toContain('name="unexpected call #2: b"');
+
+    // lax allows extra calls, so the same trace passes and the report stays green.
+    const lax: SuiteResult = {
+      name: "agent",
+      toolCalls: checkToolCalls(trace, expected, "lax"),
+      gates: [],
+    };
+    expect(suitePassed(lax)).toBe(true);
+    expect(generateReport(lax, "junit")).toContain(
+      '<testsuite name="tool_calls" tests="1" failures="0">',
+    );
+  });
+
+  it("JUnit has failures exactly when the suite fails", async () => {
+    const failuresIn = (xml: string) =>
+      [...xml.matchAll(/failures="(\d+)"/g)].reduce((n, m) => n + Number(m[1]), 0);
+    const cases: Record<string, number>[] = [
+      {},
+      { "recall@5": 0.95 },
+      { mrr: 0.99, tool_calls: 1 },
+    ];
+    for (const gates of cases) {
+      const suite = await exampleSuite(gates);
+      expect(failuresIn(generateReport(suite, "junit")) > 0).toBe(!suitePassed(suite));
+    }
   });
 });

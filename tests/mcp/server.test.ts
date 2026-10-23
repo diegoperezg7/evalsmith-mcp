@@ -59,6 +59,10 @@ describe("MCP surface", () => {
     for (const t of tools) {
       expect(t.outputSchema?.type).toBe("object");
       expect(t.annotations?.readOnlyHint).toBe(true);
+      // Only the tool that can call an external judge is open-world and non-idempotent.
+      const judged = t.name === "detect_prompt_regression";
+      expect(t.annotations?.openWorldHint).toBe(judged);
+      expect(t.annotations?.idempotentHint).toBe(!judged);
     }
   });
 
@@ -157,7 +161,8 @@ describe("tools", () => {
       candidate: await example("prompts-candidate"),
       judge: { enabled: true, model: "qwen2.5:7b" },
     });
-    expect(judgeFetch).toHaveBeenCalledTimes(6);
+    // Two orderings per case to cancel position bias.
+    expect(judgeFetch).toHaveBeenCalledTimes(12);
     expect(res.structuredContent?.judge).toEqual({
       model: "qwen2.5:7b",
       baseline: 0,
@@ -189,5 +194,28 @@ describe("tools", () => {
     const res = await call("generate_report", { gates: { accuracy: 0.9 } });
     expect(res.isError).toBe(true);
     expect(res.content[0]!.text).toMatch(/unknown gate metric/);
+  });
+
+  it("reports a failing judge endpoint as an internal error, not bad input", async () => {
+    const server = buildServer({
+      config: loadConfig({}),
+      fetchImpl: (async () => new Response("down", { status: 502 })) as unknown as typeof fetch,
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const other = new Client({ name: "judge-down", version: "1.0.0" });
+    await Promise.all([server.connect(serverTransport), other.connect(clientTransport)]);
+    const res = (await other.callTool({
+      name: "detect_prompt_regression",
+      arguments: {
+        golden: await example("prompts-golden"),
+        baseline: await example("prompts-baseline"),
+        candidate: await example("prompts-candidate"),
+        judge: { enabled: true },
+      },
+    })) as { isError?: boolean; content: { text: string }[] };
+    await other.close();
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toMatch(/-32603/);
+    expect(res.content[0]!.text).toMatch(/HTTP 502/);
   });
 });

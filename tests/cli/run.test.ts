@@ -76,7 +76,23 @@ describe("evalsmith run", () => {
 
   it("exits 2 on invalid input", () => {
     expect(evalsmith("run", CONFIG, "--fail-under", "accuracy=0.9").code).toBe(2);
+    expect(evalsmith("run", CONFIG, "--fail-under", "recall@0=0.5").code).toBe(2);
     expect(evalsmith("run", join(ROOT, "missing.yaml")).code).toBe(2);
+  });
+
+  it("exits 2 on usage errors, which commander would report as 1", () => {
+    expect(evalsmith("run").code).toBe(2);
+    expect(evalsmith("run", CONFIG, "--bogus").code).toBe(2);
+    expect(evalsmith("run", CONFIG, "--format", "xml").code).toBe(2);
+    expect(evalsmith("nope").code).toBe(2);
+  });
+
+  it("exits 0 for help and version", () => {
+    expect(evalsmith("--help").code).toBe(0);
+    expect(evalsmith("run", "--help").code).toBe(0);
+    const version = evalsmith("--version");
+    expect(version.code).toBe(0);
+    expect(version.stdout.trim()).toBe("0.1.0");
   });
 });
 

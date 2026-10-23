@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
+  type ArgMatcher,
   checkToolCalls,
   isSubset,
   matchArg,
@@ -30,6 +31,18 @@ describe("argument matchers", () => {
     expect(matchArg("meta", { type: "subset", value: { b: { c: [3] } } }, args)).toBeNull();
     expect(matchArg("meta", { type: "subset", value: { b: { c: [4] } } }, args)).not.toBeNull();
     expect(isSubset({ a: 1 }, [{ a: 1 }])).toBe(false);
+  });
+
+  it("exact without a value does not accept a missing argument", () => {
+    expect(matchArg("missing", { type: "exact" } as ArgMatcher, args)).toBe(
+      'missing argument "missing"',
+    );
+    expect(matchArg("missing", { type: "subset", value: undefined }, args)).toMatch(/missing/);
+  });
+
+  it("only looks at own properties, not the prototype chain", () => {
+    expect(matchArg("constructor", { type: "any" }, {})).toBe('missing argument "constructor"');
+    expect(isSubset({ toString: 1 }, {})).toBe(false);
   });
 
   it("any only requires presence", () => {
@@ -79,5 +92,41 @@ describe("checkToolCalls", () => {
     const r = checkToolCalls(trace.slice(0, 3), expected, "strict");
     expect(r.steps[3]?.reasons).toEqual(["no call at position 4"]);
     expect(r.score).toBe(0.75);
+  });
+
+  it("lax uses bipartite matching instead of greedy first-fit", () => {
+    // Greedy pairs expected[0] (any) with call 0, leaving nothing for expected[1] (exact "a").
+    const r = checkToolCalls(
+      [
+        { tool: "search", args: { q: "a" } },
+        { tool: "search", args: { q: "b" } },
+      ],
+      [
+        { tool: "search", args: { q: { type: "any" } } },
+        { tool: "search", args: { q: { type: "exact", value: "a" } } },
+      ],
+      "lax",
+    );
+    expect(r.passed).toBe(true);
+    expect(r.steps.map((s) => s.matchedIndex)).toEqual([1, 0]);
+  });
+
+  it("lax explains a call that exists but is needed elsewhere", () => {
+    const r = checkToolCalls(
+      [{ tool: "search", args: { q: "a" } }],
+      [
+        { tool: "search", args: { q: { type: "exact", value: "a" } } },
+        { tool: "search", args: { q: { type: "any" } } },
+      ],
+      "lax",
+    );
+    expect(r.score).toBe(0.5);
+    expect(r.steps[1]?.reasons[0]).toMatch(/already paired/);
+  });
+
+  it("strict counts only calls past the expected sequence as unexpected", () => {
+    const swapped = [trace[1]!, trace[0]!, trace[2]!, trace[3]!, { tool: "log_event", args: {} }];
+    const r = checkToolCalls(swapped, expected, "strict");
+    expect(r.unexpected).toEqual([{ index: 4, tool: "log_event" }]);
   });
 });

@@ -10,19 +10,23 @@ export function isSubset(expected: unknown, actual: unknown): boolean {
     if (actual === null || typeof actual !== "object" || Array.isArray(actual)) return false;
     const act = actual as Record<string, unknown>;
     return Object.entries(expected as Record<string, unknown>).every(
-      ([key, value]) => key in act && isSubset(value, act[key]),
+      ([key, value]) => Object.hasOwn(act, key) && isSubset(value, act[key]),
     );
   }
   return isDeepStrictEqual(expected, actual);
 }
 
-/** Returns null when the argument matches, otherwise a human-readable reason. */
+/**
+ * Returns null when the argument matches, otherwise a human-readable reason.
+ * Every matcher requires the argument to be present, so `exact` with no
+ * value cannot pass on a missing argument by comparing undefined to undefined.
+ */
 export function matchArg(name: string, matcher: ArgMatcher, args: Record<string, unknown>) {
-  const present = name in args;
+  if (!Object.hasOwn(args, name)) return `missing argument "${name}"`;
   const actual = args[name];
   switch (matcher.type) {
     case "any":
-      return present ? null : `missing argument "${name}"`;
+      return null;
     case "exact":
       return isDeepStrictEqual(actual, matcher.value)
         ? null
@@ -48,51 +52,79 @@ export function matchCall(expected: ExpectedCall, call: ToolCall): string[] {
 }
 
 /**
+ * Maximum bipartite matching between expected calls and trace calls (Kuhn's
+ * augmenting paths). A greedy first-fit can miss a valid assignment, e.g. a
+ * loose matcher taking the only call a stricter matcher accepts. Candidates
+ * are tried in trace order, so the result is deterministic.
+ */
+function maxMatching(compatible: boolean[][], traceLength: number): (number | null)[] {
+  const owner: (number | null)[] = Array.from({ length: traceLength }, () => null);
+  const tryAssign = (i: number, seen: Set<number>): boolean => {
+    for (let j = 0; j < traceLength; j++) {
+      if (!compatible[i]?.[j] || seen.has(j)) continue;
+      seen.add(j);
+      const current = owner[j];
+      if (current === null || current === undefined || tryAssign(current, seen)) {
+        owner[j] = i;
+        return true;
+      }
+    }
+    return false;
+  };
+  compatible.forEach((_, i) => tryAssign(i, new Set()));
+  const assigned: (number | null)[] = compatible.map(() => null);
+  owner.forEach((i, j) => {
+    if (i !== null && i !== undefined) assigned[i] = j;
+  });
+  return assigned;
+}
+
+/**
  * strict: position i of the trace must match expected call i, and the trace
  *         must have no extra calls.
- * lax:    each expected call is matched to the first unused trace call that
- *         satisfies it; order is ignored and extra calls are only reported.
+ * lax:    expected calls are paired with trace calls by maximum bipartite
+ *         matching; order is ignored and extra calls are only reported.
  */
 export function checkToolCalls(
   trace: ToolCall[],
   expected: ExpectedCall[],
   order: OrderMode = "strict",
 ): ToolCallResult {
-  const used = new Set<number>();
-  const steps: ToolCallResult["steps"] = expected.map((exp, i) => {
-    if (order === "strict") {
+  let steps: ToolCallResult["steps"];
+  if (order === "strict") {
+    steps = expected.map((exp, i) => {
       const call = trace[i];
       const reasons = call ? matchCall(exp, call) : [`no call at position ${i + 1}`];
-      if (reasons.length === 0) used.add(i);
-      return {
-        expected: exp.tool,
-        matchedIndex: reasons.length === 0 ? i : null,
-        passed: reasons.length === 0,
-        reasons,
-      };
-    }
-    let closest: string[] | undefined;
-    for (let j = 0; j < trace.length; j++) {
-      const call = trace[j];
-      if (used.has(j) || !call) continue;
-      const reasons = matchCall(exp, call);
-      if (reasons.length === 0) {
-        used.add(j);
+      const passed = reasons.length === 0;
+      return { expected: exp.tool, matchedIndex: passed ? i : null, passed, reasons };
+    });
+  } else {
+    const reasons = expected.map((exp) => trace.map((call) => matchCall(exp, call)));
+    const assigned = maxMatching(
+      reasons.map((row) => row.map((r) => r.length === 0)),
+      trace.length,
+    );
+    steps = expected.map((exp, i) => {
+      const j = assigned[i];
+      if (j !== null && j !== undefined) {
         return { expected: exp.tool, matchedIndex: j, passed: true, reasons: [] };
       }
-      if (call.tool === exp.tool && !closest) closest = reasons;
-    }
-    return {
-      expected: exp.tool,
-      matchedIndex: null,
-      passed: false,
-      reasons: closest ?? [`no call to "${exp.tool}" in the trace`],
-    };
-  });
+      const row = reasons[i] ?? [];
+      const why = row.some((r) => r.length === 0)
+        ? [`every call that matches "${exp.tool}" is already paired with another expected call`]
+        : (row.find((_, k) => trace[k]?.tool === exp.tool) ?? [
+            `no call to "${exp.tool}" in the trace`,
+          ]);
+      return { expected: exp.tool, matchedIndex: null, passed: false, reasons: why };
+    });
+  }
 
+  // strict: a wrong call at an expected position already fails its step, so
+  // only calls past the expected sequence count as unexpected.
+  const used = new Set(steps.map((s) => s.matchedIndex).filter((j): j is number => j !== null));
   const unexpected = trace
     .map((call, index) => ({ index, tool: call.tool }))
-    .filter(({ index }) => !used.has(index));
+    .filter(({ index }) => (order === "strict" ? index >= expected.length : !used.has(index)));
 
   const matched = steps.filter((s) => s.passed).length;
   const score = expected.length === 0 ? 1 : matched / expected.length;

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  compareConfigs,
   evaluateRetrieval,
+  isMetricName,
+  perQueryScores,
   hitRateAtK,
   ndcgAtK,
   precisionAtK,
@@ -105,5 +108,44 @@ describe("evaluateRetrieval (averages over q1, q2, q4)", () => {
   it("returns per-query values in stable order", () => {
     expect(result.perQuery.map((p) => p.queryId)).toEqual(["q1", "q2", "q4"]);
     expect(result.perQuery[0]?.metrics["ndcg@5"]).toBeCloseTo(0.6433, 4);
+  });
+});
+
+describe("robustness", () => {
+  it("keeps only the first occurrence of a repeated doc id (trec_eval)", () => {
+    const qrels2 = { q1: { d1: 1, d2: 1 } };
+    const r = evaluateRetrieval(qrels2, { q1: ["d1", "d1", "d1"] }, [3]);
+    // Deduplicated ranking is just [d1]: 1 of 2 relevant found, 1 hit in 3 slots.
+    expect(r.metrics["recall@3"]).toBe(0.5);
+    expect(r.metrics["precision@3"]).toBeCloseTo(1 / 3, 4);
+    expect(r.metrics["ndcg@3"]).toBeCloseTo(1 / (1 + 1 / Math.log2(3)), 4);
+    // Without deduplication the top 2 would be d1, d1 and precision@2 would be 1.
+    expect(perQueryScores(qrels2, { q1: ["d1", "d1"] }, "precision@2")).toEqual([0.5]);
+    for (const v of Object.values(r.metrics)) expect(v).toBeLessThanOrEqual(1);
+  });
+
+  it("deduplicates inside compare_configs as well", () => {
+    const qrels2 = { q1: { d1: 1, d2: 1 } };
+    const res = compareConfigs(
+      qrels2,
+      [
+        { name: "dupes", run: { q1: ["d1", "d1", "d1"] } },
+        { name: "clean", run: { q1: ["d1", "d2", "d3"] } },
+      ],
+      "recall@3",
+      { samples: 100, seed: 1, confidence: 0.95 },
+    );
+    expect(res.winner).toBe("clean");
+    expect(res.configs.find((c) => c.name === "dupes")?.interval.mean).toBe(0.5);
+  });
+
+  it("rejects a cut-off of 0", () => {
+    expect(isMetricName("recall@0")).toBe(false);
+    expect(isMetricName("ndcg@01")).toBe(false);
+    expect(isMetricName("ndcg@10")).toBe(true);
+  });
+
+  it("ignores doc ids that collide with Object.prototype keys", () => {
+    expect(ndcgAtK(["constructor", "a"], { a: 1 }, 2)).toBeCloseTo(1 / Math.log2(3), 6);
   });
 });

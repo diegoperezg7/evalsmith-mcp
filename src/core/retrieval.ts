@@ -8,6 +8,8 @@ import type { MetricMap, Qrels, RetrievalResult, Run } from "./schemas.js";
  * - Queries with no relevant documents are skipped, as trec_eval does.
  * - Judged queries missing from the run count as an empty ranking (all zeros).
  * - nDCG uses linear gain: DCG@k = sum(rel_i / log2(i + 1)) for i = 1..k.
+ * - Repeated doc ids in a ranking keep their first position only, as trec_eval
+ *   does, so a run cannot score above 1 by repeating a relevant document.
  */
 
 export const DEFAULT_KS = [1, 3, 5, 10];
@@ -18,6 +20,14 @@ export function relevantSet(judgements: Record<string, number>): Set<string> {
       .filter(([, grade]) => grade > 0)
       .map(([doc]) => doc),
   );
+}
+
+const grade = (judgements: Record<string, number>, doc: string): number =>
+  Object.hasOwn(judgements, doc) ? (judgements[doc] ?? 0) : 0;
+
+/** Drops repeated doc ids, keeping the first occurrence. */
+export function dedupeRanking(ranking: string[]): string[] {
+  return [...new Set(ranking)];
 }
 
 function hitsAtK(ranking: string[], relevant: Set<string>, k: number): number {
@@ -46,16 +56,16 @@ export function reciprocalRank(ranking: string[], relevant: Set<string>): number
 export function ndcgAtK(ranking: string[], judgements: Record<string, number>, k: number): number {
   const dcg = ranking
     .slice(0, k)
-    .reduce((sum, doc, i) => sum + (judgements[doc] ?? 0) / Math.log2(i + 2), 0);
+    .reduce((sum, doc, i) => sum + grade(judgements, doc) / Math.log2(i + 2), 0);
   const ideal = Object.values(judgements)
     .filter((g) => g > 0)
     .sort((a, b) => b - a)
     .slice(0, k)
-    .reduce((sum, grade, i) => sum + grade / Math.log2(i + 2), 0);
+    .reduce((sum, g, i) => sum + g / Math.log2(i + 2), 0);
   return ideal === 0 ? 0 : dcg / ideal;
 }
 
-const METRIC_PATTERN = /^(recall|precision|ndcg|hit_rate)@(\d+)$|^mrr$/;
+const METRIC_PATTERN = /^(recall|precision|ndcg|hit_rate)@([1-9]\d*)$|^mrr$/;
 
 export function isMetricName(name: string): boolean {
   return METRIC_PATTERN.test(name);
@@ -76,9 +86,11 @@ export function metricNames(ks: number[]): string[] {
   return names;
 }
 
-export function queryMetric(name: string, ranking: string[], judgements: Record<string, number>) {
+/** Single-query metric by name. Every aggregate goes through here, so deduplication happens once. */
+export function queryMetric(name: string, run: string[], judgements: Record<string, number>) {
   const m = METRIC_PATTERN.exec(name);
   if (!m) throw new Error(`Unknown metric "${name}"`);
+  const ranking = dedupeRanking(run);
   const relevant = relevantSet(judgements);
   if (!m[1]) return reciprocalRank(ranking, relevant);
   const k = Number(m[2]);

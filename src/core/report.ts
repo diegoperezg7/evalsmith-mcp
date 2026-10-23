@@ -159,13 +159,19 @@ export function toJUnit(suite: SuiteResult): string {
   }
   if (suite.toolCalls) {
     suites.push(
-      suiteXml(
-        "tool_calls",
-        suite.toolCalls.steps.map((s, i) => ({
+      suiteXml("tool_calls", [
+        ...suite.toolCalls.steps.map((s, i) => ({
           name: `step ${i + 1}: ${s.expected}`,
           failure: s.passed ? undefined : s.reasons.join("; "),
         })),
-      ),
+        // In strict mode an extra call fails the check, so it must fail the report too.
+        ...(suite.toolCalls.order === "strict"
+          ? suite.toolCalls.unexpected.map((u) => ({
+              name: `unexpected call #${u.index + 1}: ${u.tool}`,
+              failure: `call #${u.index + 1} (${u.tool}) is outside the expected sequence`,
+            }))
+          : []),
+      ]),
     );
   }
   if (suite.regression) {

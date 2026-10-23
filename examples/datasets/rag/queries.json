@@ -1,0 +1,50 @@
+[
+  {
+    "id": "q01",
+    "text": "How do I export my invoices to a spreadsheet?"
+  },
+  {
+    "id": "q02",
+    "text": "Can I bill a customer in US dollars?"
+  },
+  {
+    "id": "q03",
+    "text": "Send the same invoice every month automatically"
+  },
+  {
+    "id": "q04",
+    "text": "I lost my phone and can't pass two-factor login"
+  },
+  {
+    "id": "q05",
+    "text": "What happens if a customer's card is declined?"
+  },
+  {
+    "id": "q06",
+    "text": "Give my accountant read-only access"
+  },
+  {
+    "id": "q07",
+    "text": "Invoice a company in Germany without charging VAT"
+  },
+  {
+    "id": "q08",
+    "text": "How do I close my account and remove my data?"
+  },
+  {
+    "id": "q09",
+    "text": "Sync transactions from my bank"
+  },
+  {
+    "id": "q10",
+    "text": "When are payment reminders sent for late invoices?"
+  },
+  {
+    "id": "q11",
+    "text": "How many API calls can I make?"
+  },
+  {
+    "id": "q12",
+    "text": "Bring my client list in from Excel"
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "tool": "search_customers",
+    "args": { "query": { "type": "regex", "pattern": "acme", "flags": "i" } }
+  },
+  {
+    "tool": "get_invoice",
+    "args": { "invoice_id": { "type": "exact", "value": "INV-2041" } }
+  },
+  {
+    "tool": "create_refund",
+    "args": {
+      "invoice_id": { "type": "exact", "value": "INV-2041" },
+      "amount": { "type": "exact", "value": 120 },
+      "currency": { "type": "exact", "value": "EUR" },
+      "reason": { "type": "any" },
+      "metadata": { "type": "subset", "value": { "ticket": "T-5532" } }
+    }
+  },
+  {
+    "tool": "send_email",
+    "args": {
+      "to": { "type": "regex", "pattern": "@acme-robotics\\.example$" },
+      "template": { "type": "exact", "value": "refund_confirmation" }
+    }
+  }
+]

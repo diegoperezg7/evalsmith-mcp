@@ -1,0 +1,102 @@
+[
+  {
+    "id": "d01",
+    "title": "Getting started with Ledgerly",
+    "text": "Create your workspace, add your company details and send your first invoice in under five minutes."
+  },
+  {
+    "id": "d02",
+    "title": "Invoice templates",
+    "text": "Choose a template, upload your logo and set default payment terms for every new invoice."
+  },
+  {
+    "id": "d03",
+    "title": "Exporting invoices",
+    "text": "Export invoices to CSV or PDF from Invoices > Export. Filters such as date range and status apply to the export."
+  },
+  {
+    "id": "d04",
+    "title": "Importing customers",
+    "text": "Import customers from a CSV or XLSX spreadsheet. Map columns to name, email, tax ID and billing address."
+  },
+  {
+    "id": "d05",
+    "title": "Multi-currency invoices",
+    "text": "Each invoice can use its own currency. Change it from the invoice settings before the invoice is sent."
+  },
+  {
+    "id": "d06",
+    "title": "EU VAT and reverse charge",
+    "text": "For B2B customers in another EU country, enable reverse charge so the invoice shows 0% VAT and the legal notice."
+  },
+  {
+    "id": "d07",
+    "title": "Recurring invoices",
+    "text": "Create a recurring schedule (weekly, monthly, yearly). Ledgerly generates and sends each invoice automatically."
+  },
+  {
+    "id": "d08",
+    "title": "Automatic reminders",
+    "text": "Reminders are sent 3 days before and 7 and 14 days after the due date. You can edit the schedule per customer."
+  },
+  {
+    "id": "d09",
+    "title": "Failed card payments",
+    "text": "When a card payment fails the invoice stays open, the customer gets an email and we retry after 3 days."
+  },
+  {
+    "id": "d10",
+    "title": "Late payments",
+    "text": "Invoices past due are marked overdue. Late fees and reminder cadence are configured in Settings > Payments."
+  },
+  {
+    "id": "d11",
+    "title": "Reports and analytics",
+    "text": "Revenue, outstanding balance and aging reports. Every report can be downloaded as CSV."
+  },
+  {
+    "id": "d12",
+    "title": "Bank feeds",
+    "text": "Connect a bank account to import transactions daily and match them to paid invoices."
+  },
+  {
+    "id": "d13",
+    "title": "Payment methods",
+    "text": "Accept card, SEPA direct debit and bank transfer. Enable methods per invoice or globally."
+  },
+  {
+    "id": "d14",
+    "title": "Two-factor authentication",
+    "text": "Enable 2FA with an authenticator app. If you lose your device, use a recovery code to reset 2FA."
+  },
+  {
+    "id": "d15",
+    "title": "Account recovery",
+    "text": "If you cannot sign in, an owner can reset your access, or support can verify your identity."
+  },
+  {
+    "id": "d16",
+    "title": "Roles and permissions",
+    "text": "Invite team members as Owner, Admin, Accountant or Viewer. Viewers have read-only access."
+  },
+  {
+    "id": "d17",
+    "title": "Notifications",
+    "text": "Choose which events send email or in-app notifications: payments, overdue invoices, comments."
+  },
+  {
+    "id": "d18",
+    "title": "Deleting your account",
+    "text": "Owners can delete the workspace from Settings > Danger zone. Data is erased after 30 days."
+  },
+  {
+    "id": "d19",
+    "title": "Data retention",
+    "text": "Invoices are kept for 10 years for tax purposes unless the workspace is deleted."
+  },
+  {
+    "id": "d20",
+    "title": "API limits",
+    "text": "The REST API allows 100 requests per minute per token. Responses include rate limit headers."
+  }
+]

@@ -1,0 +1,22 @@
+[
+  { "tool": "search_customers", "args": { "query": "Acme Robotics", "limit": 5 } },
+  { "tool": "get_invoice", "args": { "invoice_id": "INV-2041" } },
+  {
+    "tool": "create_refund",
+    "args": {
+      "invoice_id": "INV-2041",
+      "amount": 120.0,
+      "currency": "EUR",
+      "reason": "Duplicate charge reported by the customer",
+      "metadata": { "channel": "support-chat", "ticket": "T-5532", "agent_version": "2.3.0" }
+    }
+  },
+  {
+    "tool": "send_email",
+    "args": {
+      "to": "billing@acme-robotics.example",
+      "template": "refund_confirmation",
+      "variables": { "invoice_id": "INV-2041", "amount": "120.00 EUR" }
+    }
+  }
+]

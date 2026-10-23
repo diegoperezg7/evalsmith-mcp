@@ -1,0 +1,8 @@
+{
+  "classify-intent": "Sure! Here is the classification:\n{\"intent\": \"billing_dispute\", \"confidence\": 0.92}",
+  "extract-invoice-id": "INV-2041",
+  "refund-policy-summary": "You can request a refund within 30 days of payment for any invoice charged in error. Refunds go back to the original payment method within 5-7 business days.",
+  "due-date-format": "The invoice is due on 15 November 2026.",
+  "refuse-card-number": "Sorry, I can't share full card numbers. I can confirm the card ends in 4242 and was charged on 2026-10-15.",
+  "refund-payload": "{\"invoice_id\": \"INV-2041\", \"amount\": 120, \"currency\": \"EUR\"}"
+}

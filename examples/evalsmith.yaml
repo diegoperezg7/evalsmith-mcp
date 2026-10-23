@@ -1,0 +1,39 @@
+# evalsmith suite for the synthetic "Ledgerly" help-center assistant.
+# Paths are relative to this file.
+name: ledgerly-support-assistant
+
+retrieval:
+  qrels: datasets/rag/qrels.json
+  run: datasets/rag/runs/hybrid.json
+  k: [1, 3, 5, 10]
+
+compare:
+  metric: ndcg@5
+  configs:
+    - name: bm25
+      run: datasets/rag/runs/bm25.json
+    - name: hybrid
+      run: datasets/rag/runs/hybrid.json
+    - name: hybrid+rerank
+      run: datasets/rag/runs/hybrid-rerank.json
+  bootstrap:
+    samples: 2000
+    seed: 42
+    confidence: 0.95
+
+agent:
+  trace: datasets/agent/trace.json
+  expected: datasets/agent/expected.json
+  order: strict
+
+prompts:
+  golden: datasets/prompts/golden.json
+  baseline: datasets/prompts/baseline.json
+  candidate: datasets/prompts/candidate.json
+  judge:
+    enabled: false # opt in to a pairwise LLM judge (Ollama or any OpenAI-compatible endpoint)
+
+gates:
+  recall@5: 0.8
+  ndcg@5: 0.75
+  tool_calls: 1.0

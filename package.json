@@ -1,0 +1,72 @@
+{
+  "name": "evalsmith-mcp",
+  "version": "0.1.0",
+  "description": "MCP server and CLI for evaluating RAG retrieval and AI agents: deterministic metrics, tool-call checks and prompt regression gates that can fail CI.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "evalsmith": "./dist/cli/index.js",
+    "evalsmith-mcp": "./dist/mcp/server.js"
+  },
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev:mcp": "tsx src/mcp/server.ts",
+    "dev:cli": "tsx src/cli/index.ts",
+    "start:mcp": "node dist/mcp/server.js",
+    "start:http": "EVALSMITH_TRANSPORT=http node dist/mcp/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "inspect": "npx -y @modelcontextprotocol/inspector node dist/mcp/server.js",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "evaluation",
+    "rag",
+    "retrieval",
+    "ndcg",
+    "agents",
+    "llmops",
+    "ci"
+  ],
+  "author": "Diego Pérez",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diegoperezg7/evalsmith-mcp.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ajv": "^8.20.0",
+    "commander": "^15.0.0",
+    "pino": "^10.4.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.13.0",
+    "prettier": "^3.9.10",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

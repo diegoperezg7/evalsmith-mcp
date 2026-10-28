@@ -11,6 +11,7 @@
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-1.32-c2410c)](https://github.com/modelcontextprotocol/typescript-sdk)
 [![CI](https://github.com/diegoperezg7/evalsmith-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/diegoperezg7/evalsmith-mcp/actions/workflows/ci.yml)
 [![Paid API keys](https://img.shields.io/badge/paid%20API%20keys-none-555)](#design-decisions)
+[![npm](https://img.shields.io/npm/v/evalsmith-mcp?color=c2410c)](https://www.npmjs.com/package/evalsmith-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
@@ -216,6 +217,13 @@ The optional judge sends both outputs to any OpenAI-compatible `/chat/completion
 ## Quickstart
 
 ```bash
+npx -y evalsmith-mcp                       # MCP server on stdio
+npm install -g evalsmith-mcp               # or install the `evalsmith` CLI and `evalsmith-mcp` server
+```
+
+To run the bundled examples and the tests from source:
+
+```bash
 git clone https://github.com/diegoperezg7/evalsmith-mcp.git
 cd evalsmith-mcp
 npm ci            # also builds dist/ through the prepare script
@@ -232,8 +240,8 @@ Most desktop MCP clients read an `mcpServers` block like this ([`examples/mcp-cl
 {
   "mcpServers": {
     "evalsmith": {
-      "command": "node",
-      "args": ["/absolute/path/to/evalsmith-mcp/dist/mcp/server.js"],
+      "command": "npx",
+      "args": ["-y", "evalsmith-mcp"],
       "env": { "LOG_LEVEL": "warn" }
     }
   }

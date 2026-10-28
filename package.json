@@ -1,6 +1,7 @@
 {
   "name": "evalsmith-mcp",
   "version": "0.1.0",
+  "mcpName": "io.github.diegoperezg7/evalsmith-mcp",
   "description": "MCP server and CLI for evaluating RAG retrieval and AI agents: deterministic metrics, tool-call checks and prompt regression gates that can fail CI.",
   "type": "module",
   "engines": {

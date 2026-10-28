@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.diegoperezg7/evalsmith-mcp",
+  "description": "Evaluate RAG retrieval, agent tool calls and prompt regressions with deterministic metrics.",
+  "repository": {
+    "url": "https://github.com/diegoperezg7/evalsmith-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "evalsmith-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "EVALSMITH_JUDGE_BASE_URL",
+          "description": "OpenAI-compatible endpoint for the optional LLM judge (default: Ollama on localhost)",
+          "isRequired": false,
+          "format": "string",
+          "default": "http://localhost:11434/v1"
+        },
+        {
+          "name": "EVALSMITH_JUDGE_MODEL",
+          "description": "Model used by the optional LLM judge",
+          "isRequired": false,
+          "format": "string",
+          "default": "llama3.1:8b"
+        },
+        {
+          "name": "EVALSMITH_JUDGE_API_KEY",
+          "description": "API key for the judge endpoint, if it needs one",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "pino log level; logs go to stderr",
+          "isRequired": false,
+          "format": "string",
+          "default": "info"
+        }
+      ]
+    }
+  ]
+}

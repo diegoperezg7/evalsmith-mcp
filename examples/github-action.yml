@@ -22,7 +22,7 @@ jobs:
           node-version: 22
 
       - name: Install evalsmith
-        run: npm install --no-save github:diegoperezg7/evalsmith-mcp
+        run: npm install --no-save evalsmith-mcp
 
       # Produce the files your suite points at, e.g. run every eval query through
       # the retriever and save { queryId: [docId, ...] } as evals/runs/current.json.

@@ -25,7 +25,7 @@ evalsmith answers four questions that come up every time a retriever, prompt or 
 3. **Did the agent call the right tools?** Trace vs. expected calls, strict or lax order, argument matchers.
 4. **Did the prompt change break anything?** Golden-set checks on baseline vs. candidate outputs.
 
-Everything is deterministic and runs offline. An LLM judge exists for a second opinion, but it is off by default and never decides the verdict.
+Everything is deterministic and runs offline. An LLM judge exists for a second opinion, but it is off by default and never decides the verdict. Results come out as a terminal table, Markdown, JSON, JUnit XML or a [self-contained HTML report](#html-report), and the [GitHub Action](#github-action) turns them into a merge gate.
 
 <p align="center"><img src="docs/assets/cli.gif" alt="evalsmith run: retrieval metrics, config comparison, tool-call check, prompt regression and a failing CI gate" width="100%" /></p>
 
@@ -39,26 +39,31 @@ flowchart LR
         A[MCP client<br/>desktop app, IDE, agent]
         B[Remote MCP client<br/>or service]
         C[Terminal / CI job]
+        D[GitHub workflow]
     end
     subgraph evalsmith
         S1[MCP server<br/>stdio]
         S2[MCP server<br/>Streamable HTTP, stateless]
         S3[CLI<br/>evalsmith run]
+        S4[GitHub Action<br/>uses: evalsmith-mcp@v0]
         CORE[(src/core<br/>metrics, bootstrap, matchers,<br/>checks, gates, reports)]
     end
     A --> S1 --> CORE
     B --> S2 --> CORE
     C --> S3 --> CORE
-    S3 -. exit code + JUnit .-> C
+    D --> S4 --> CORE
+    S3 -. exit code + JUnit + HTML .-> C
+    S4 -. outputs + job summary .-> D
 ```
 
-| Interface                    | Entry point                    | Who uses it                                           | Why it exists                                                                                                         |
-| ---------------------------- | ------------------------------ | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **MCP over stdio**           | `dist/mcp/server.js`           | Desktop MCP clients, IDE assistants, local agents     | An assistant can score a run, compare configs or audit a trace mid-conversation, with typed `structuredContent` back. |
-| **MCP over Streamable HTTP** | `EVALSMITH_TRANSPORT=http`     | Remote clients, internal platforms, the MCP Inspector | Same tools over the network. Stateless: no sessions to store, scales horizontally.                                    |
-| **CLI / CI**                 | `evalsmith run evalsmith.yaml` | Pipelines and terminals                               | `--fail-under recall@5=0.8` turns a metric into a merge gate. Exit codes, Markdown summary, JUnit XML.                |
+| Interface                    | Entry point                           | Who uses it                                           | Why it exists                                                                                                         |
+| ---------------------------- | ------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **MCP over stdio**           | `dist/mcp/server.js`                  | Desktop MCP clients, IDE assistants, local agents     | An assistant can score a run, compare configs or audit a trace mid-conversation, with typed `structuredContent` back. |
+| **MCP over Streamable HTTP** | `EVALSMITH_TRANSPORT=http`            | Remote clients, internal platforms, the MCP Inspector | Same tools over the network. Stateless: no sessions to store, scales horizontally.                                    |
+| **CLI / CI**                 | `evalsmith run evalsmith.yaml`        | Pipelines and terminals                               | `--fail-under recall@5=0.8` turns a metric into a merge gate. Exit codes, Markdown summary, JUnit XML, HTML report.   |
+| **GitHub Action**            | `uses: diegoperezg7/evalsmith-mcp@v0` | GitHub workflows                                      | The same gates as a step, with outputs, a job summary and no install.                                                 |
 
-All three call the same functions in [`src/core`](src/core). The MCP tools are thin adapters: parse input with Zod, call the core, return `structuredContent` validated against an output schema.
+All four call the same functions in [`src/core`](src/core). The MCP tools are thin adapters: parse input with Zod, call the core, return `structuredContent` validated against an output schema.
 
 ---
 
@@ -230,7 +235,8 @@ To run the bundled examples and the tests from source:
 git clone https://github.com/diegoperezg7/evalsmith-mcp.git
 cd evalsmith-mcp
 npm ci            # also builds dist/ through the prepare script
-npm test          # 82 tests: metrics, MCP in-memory + HTTP, CLI exit codes
+npx playwright install chromium   # the HTML report tests open it in a real browser
+npm test          # metrics, MCP in-memory + HTTP, CLI exit codes, HTML report, action
 
 node dist/cli/index.js run examples/evalsmith.yaml
 ```
@@ -286,8 +292,8 @@ npx @modelcontextprotocol/inspector             # connect to http://127.0.0.1:33
 ## CLI and CI
 
 ```bash
-evalsmith run <config> [--fail-under metric=value ...] [--format table|json|markdown]
-                       [--report file.{md,json,xml}] [--report-format markdown|json|junit]
+evalsmith run <config> [--fail-under metric=value ...] [--format table|json|markdown|html]
+                       [--report file.{md,json,xml,html}] [--report-format markdown|json|junit|html]
 evalsmith doctor [config] [--judge]
 ```
 
@@ -383,22 +389,80 @@ $ echo $?
 1
 ```
 
-### GitHub Actions
+### HTML report
 
-[`examples/github-action.yml`](examples/github-action.yml) installs evalsmith, runs the suite with gates, writes the Markdown report to the job summary and publishes the JUnit XML as a check run:
+`--report report.html` (or `--format html` on stdout) writes the whole run to one HTML file that opens offline and follows the system light or dark mode:
+
+- the verdict, and a card per gate with its value, threshold and status;
+- retrieval metrics per k as bars with a bootstrap interval over the queries, and gate thresholds marked on them;
+- the configuration comparison with each interval, the winner and the gap to the runner-up;
+- expected vs. actual tool calls, with the matched pairs linked and mismatches flagged;
+- baseline vs. candidate per golden case, with the failing checks one click away.
+
+<p align="center"><img src="docs/assets/report.png" alt="evalsmith HTML report in light mode: FAIL verdict, gate cards and retrieval metrics per k with intervals" width="100%" /></p>
+
+<details>
+<summary>Dark mode and an opened prompt regression</summary>
+
+<p align="center"><img src="docs/assets/report-dark.png" alt="The same report in dark mode" width="100%" /></p>
+<p align="center"><img src="docs/assets/report-regression.png" alt="Prompt regression table with a regressed case opened, showing the check that fails on the candidate" width="100%" /></p>
+
+</details>
+
+Dataset text (case ids, tool names, failure messages) is embedded as JSON in a non-executable `<script type="application/json">` block and rendered with `textContent` only. A Content-Security-Policy allows no network access and only the page's own script, by hash. Tests open a report full of markup in Chromium and check that nothing from it runs. `npm run docs:screenshots` regenerates the pictures above.
+
+---
+
+## GitHub Action
 
 ```yaml
-- name: Run the suite
-  run: >
-    npx evalsmith run evals/evalsmith.yaml
-    --fail-under recall@5=0.8
-    --fail-under ndcg@10=0.7
-    --format markdown
-    --report evalsmith-report.xml
-    >> "$GITHUB_STEP_SUMMARY"
+- uses: actions/checkout@v5
+- uses: diegoperezg7/evalsmith-mcp@v0
+  id: evals
+  with:
+    config: evals/evalsmith.yaml
+    fail-under: |
+      recall@5=0.8
+      ndcg@10=0.7
+      tool_calls=1
+    html-report: evalsmith-report.html
 ```
 
-### Suite file
+The step fails when a gate is below its threshold, the prompt candidate regresses or the tool calls do not match, and writes the Markdown report with the verdict to the job summary. It runs the same core as the CLI from a bundled `node24` script, with no install step and no shell. [`examples/github-workflow.yml`](examples/github-workflow.yml) is a complete workflow that also keeps the HTML report as an artifact and publishes the JUnit XML as a check run.
+
+| Input            | Default          | Description                                                                                             |
+| ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `config`         | `evalsmith.yaml` | Suite file. Dataset paths inside it are relative to the file                                            |
+| `fail-under`     |                  | One `metric=value` per line. Adds to the gates in the suite file and overrides those with the same name |
+| `report-file`    |                  | Report file: `.md`, `.json`, `.xml` (JUnit) or `.html`                                                  |
+| `report-format`  | from extension   | `markdown`, `json`, `junit` or `html`                                                                   |
+| `html-report`    |                  | Path for the self-contained HTML report                                                                 |
+| `upload-summary` | `true`           | Append the Markdown report to the job summary                                                           |
+
+| Output               | Description                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `verdict`            | `pass` or `fail`                                                                    |
+| `failed-gates`       | Gates below their threshold                                                         |
+| `metrics`            | Retrieval metrics as JSON, e.g. `fromJSON(steps.evals.outputs.metrics)['recall@5']` |
+| `mrr`                | MRR of the retrieval run                                                            |
+| `tool-calls`         | Tool-call score, matched / expected                                                 |
+| `prompt-pass-rate`   | Candidate pass rate on the golden set                                               |
+| `prompt-regressions` | Cases that pass on baseline and fail on candidate                                   |
+| `winner`             | Winning configuration of the comparison                                             |
+| `report-file`        | Path of `report-file`, empty when not requested                                     |
+| `html-report`        | Path of the HTML report, empty when not requested                                   |
+
+Outputs of a section the suite does not have are empty. Dataset text printed to the log is wrapped in `::stop-commands::`, so a case id or tool name cannot issue workflow commands. The judge reads `EVALSMITH_JUDGE_*` from the step environment, as the CLI does.
+
+Without the action, the CLI does the same from any CI:
+
+```bash
+npx evalsmith run evals/evalsmith.yaml --fail-under recall@5=0.8 --format markdown --report evalsmith-report.xml >> "$GITHUB_STEP_SUMMARY"
+```
+
+---
+
+## Suite file
 
 ```yaml
 name: ledgerly-support-assistant
@@ -462,17 +526,18 @@ flowchart LR
 
 ```text
 src/
-  core/         metrics, bootstrap, tool-call matchers, prompt checks, judge, gates, reports, suite runner
+  core/         metrics, bootstrap, tool-call matchers, prompt checks, judge, gates, reports (incl. HTML), suite runner
   mcp/          server (stdio + HTTP), tools/, resources/, prompts/
-  cli/          evalsmith run | doctor, table/json/markdown output
+  cli/          evalsmith run | doctor, table/json/markdown/html output
+  action/       GitHub Action entry point, bundled into dist/action
   shared/       config (Zod), pino logger on stderr, MCP errors
 tests/
-  core/         hand-computed metrics, bootstrap, matchers, checks, reports
+  core/         hand-computed metrics, bootstrap, matchers, checks, reports, HTML in Chromium
   mcp/          InMemoryTransport client and real Streamable HTTP client
   cli/          exit codes 0 / 1 / 2, JUnit file, doctor
 examples/
   datasets/     synthetic RAG corpus + qrels + 3 runs, agent trace, golden prompts
-  evalsmith.yaml, github-action.yml, mcp-client-config.json
+  evalsmith.yaml, github-workflow.yml, mcp-client-config.json
 ```
 
 ```bash
@@ -480,7 +545,7 @@ npm run check     # typecheck + eslint + prettier + vitest
 npm run inspect   # MCP Inspector against the built stdio server
 ```
 
-Releases come from tags: `npm version minor && git push --follow-tags` bumps `package.json`, `server.json` and `src/shared/version.ts` together, and [`release.yml`](.github/workflows/release.yml) publishes to npm with provenance, to the MCP Registry and to GitHub Releases. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+Releases come from version tags: [`release.yml`](.github/workflows/release.yml) publishes to npm with provenance, to the MCP Registry and to GitHub Releases, and the action is published to the Marketplace from the release. [docs/RELEASING.md](docs/RELEASING.md) has the steps, including the action bundle and the `v0` tag. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

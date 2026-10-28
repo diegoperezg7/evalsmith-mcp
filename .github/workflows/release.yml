@@ -1,0 +1,48 @@
+# Publishes a tagged version to npm (with provenance, through trusted publishing),
+# the MCP Registry and GitHub Releases. Push a tag that matches package.json:
+#   npm version minor && git push --follow-tags   (the version script syncs server.json)
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # npm trusted publishing and MCP Registry login
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - name: Use an npm that supports trusted publishing
+        run: npm install -g npm@11
+
+      - run: npm ci
+      - run: npm run check
+      - run: node scripts/check-versions.mjs "${GITHUB_REF_NAME#v}"
+
+      - run: npm publish --access public
+
+      - name: Publish to the MCP Registry
+        run: |
+          curl -fsSL https://github.com/modelcontextprotocol/registry/releases/download/v1.8.6/mcp-publisher_linux_amd64.tar.gz | tar xz mcp-publisher
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file <(node scripts/changelog-section.mjs "${GITHUB_REF_NAME#v}")

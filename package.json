@@ -45,11 +45,14 @@
     "ci"
   ],
   "author": "Diego Pérez",
-  "license": "SEE LICENSE IN LICENSE",
-  "private": true,
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/diegoperezg7/evalsmith-mcp.git"
+  },
+  "homepage": "https://github.com/diegoperezg7/evalsmith-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/diegoperezg7/evalsmith-mcp/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

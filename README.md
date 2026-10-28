@@ -9,9 +9,9 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-43853d?logo=node.js&logoColor=white)](.nvmrc)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](tsconfig.json)
 [![MCP SDK](https://img.shields.io/badge/MCP%20SDK-1.32-c2410c)](https://github.com/modelcontextprotocol/typescript-sdk)
-[![Tests](https://img.shields.io/badge/tests-82%20passing-2ea44f)](tests)
+[![CI](https://github.com/diegoperezg7/evalsmith-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/diegoperezg7/evalsmith-mcp/actions/workflows/ci.yml)
 [![Paid API keys](https://img.shields.io/badge/paid%20API%20keys-none-555)](#design-decisions)
-[![License](https://img.shields.io/badge/license-proprietary-lightgrey)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
 
@@ -460,4 +460,4 @@ npm run inspect   # MCP Inspector against the built stdio server
 
 ## License
 
-Proprietary. See [LICENSE](LICENSE). The source is available for evaluation only.
+[MIT](LICENSE)

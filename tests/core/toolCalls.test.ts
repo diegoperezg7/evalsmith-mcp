@@ -77,6 +77,7 @@ describe("checkToolCalls", () => {
     const lax = checkToolCalls(extra, expected, "lax");
     expect(lax.passed).toBe(true);
     expect(lax.unexpected).toEqual([{ index: 4, tool: "log_event" }]);
+    expect(lax.calls).toEqual(extra.map((c) => c.tool));
   });
 
   it("explains argument mismatches on the right tool", () => {

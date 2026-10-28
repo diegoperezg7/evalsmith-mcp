@@ -140,6 +140,10 @@ export const ToolCallResultSchema = z.object({
     }),
   ),
   unexpected: z.array(z.object({ index: z.number().int(), tool: z.string() })),
+  calls: z
+    .array(z.string())
+    .optional()
+    .describe("Tool names of the trace, in call order. Used to draw the expected vs. actual view."),
   summary: z.string(),
 });
 

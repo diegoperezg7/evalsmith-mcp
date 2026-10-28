@@ -138,5 +138,13 @@ export function checkToolCalls(
         ? `; ${unexpected.length} call(s) outside the expected sequence.`
         : ".");
 
-  return { passed, order, score: Math.round(score * 10_000) / 10_000, steps, unexpected, summary };
+  return {
+    passed,
+    order,
+    score: Math.round(score * 10_000) / 10_000,
+    steps,
+    unexpected,
+    calls: trace.map((c) => c.tool),
+    summary,
+  };
 }

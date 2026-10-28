@@ -8,8 +8,8 @@
     "node": ">=22"
   },
   "bin": {
-    "evalsmith": "./dist/cli/index.js",
-    "evalsmith-mcp": "./dist/mcp/server.js"
+    "evalsmith": "dist/cli/index.js",
+    "evalsmith-mcp": "dist/mcp/server.js"
   },
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",

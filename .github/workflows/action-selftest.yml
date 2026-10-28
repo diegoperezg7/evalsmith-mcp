@@ -1,0 +1,79 @@
+# Runs the action from this checkout (uses: ./) on the bundled example suite:
+# it must pass with the example gates and fail when a gate is raised.
+name: action-selftest
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No npm ci: the action runs from the committed dist/action bundle.
+
+      - name: Evaluate the example suite
+        id: ok
+        uses: ./
+        with:
+          config: examples/evalsmith.yaml
+          fail-under: |
+            recall@5=0.8
+            mrr=0.8
+          report-file: out/report.xml
+          html-report: out/report.html
+
+      - name: It must have passed, with outputs
+        env:
+          VERDICT: ${{ steps.ok.outputs.verdict }}
+          FAILED: ${{ steps.ok.outputs.failed-gates }}
+          MRR: ${{ steps.ok.outputs.mrr }}
+          RECALL5: ${{ fromJSON(steps.ok.outputs.metrics)['recall@5'] }}
+          TOOL_CALLS: ${{ steps.ok.outputs.tool-calls }}
+          WINNER: ${{ steps.ok.outputs.winner }}
+          REPORT: ${{ steps.ok.outputs.report-file }}
+          HTML: ${{ steps.ok.outputs.html-report }}
+        run: |
+          set -eux
+          test "$VERDICT" = pass
+          test "$FAILED" = 0
+          test "$MRR" = 0.8403
+          test "$RECALL5" = 0.9167
+          test "$TOOL_CALLS" = 1
+          test "$WINNER" = hybrid+rerank
+          test "$REPORT" = out/report.xml
+          test "$HTML" = out/report.html
+          grep -q '<testsuites' "$REPORT"
+          grep -q '<!doctype html>' "$HTML"
+
+      - name: Raise the bar so the same suite fails
+        id: strict
+        uses: ./
+        continue-on-error: true
+        with:
+          config: examples/evalsmith.yaml
+          fail-under: |
+            recall@5=0.95
+            mrr=0.9
+          upload-summary: false
+
+      - name: It must have failed, with outputs
+        env:
+          OUTCOME: ${{ steps.strict.outcome }}
+          VERDICT: ${{ steps.strict.outputs.verdict }}
+          FAILED: ${{ steps.strict.outputs.failed-gates }}
+          HTML: ${{ steps.strict.outputs.html-report }}
+        run: |
+          set -eux
+          test "$OUTCOME" = failure
+          test "$VERDICT" = fail
+          test "$FAILED" = 2
+          test -z "$HTML"

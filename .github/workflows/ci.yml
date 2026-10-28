@@ -27,6 +27,14 @@ jobs:
       - run: npm run check
       - run: npm run build
       - run: node scripts/check-versions.mjs
+      - name: Check that the committed action bundle is up to date
+        run: |
+          npm run build:action
+          if [ -n "$(git status --porcelain -- dist/action)" ]; then
+            echo "::error title=stale bundle::dist/action does not match the source. Run npm run build:action and commit the result."
+            git status --short -- dist/action
+            exit 1
+          fi
 
   docker:
     runs-on: ubuntu-latest

@@ -1,11 +1,13 @@
 # Publishes a tagged version to npm (with provenance, through trusted publishing),
 # the MCP Registry and GitHub Releases. Push a tag that matches package.json:
 #   npm version minor && git push --follow-tags   (the version script syncs server.json)
+# Only full version tags match; moving the action's major tag (v0) does not publish.
+# See docs/RELEASING.md.
 name: release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
 permissions:
   contents: read

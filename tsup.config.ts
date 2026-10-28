@@ -11,7 +11,8 @@ export default defineConfig({
   outDir: "dist",
   splitting: false,
   sourcemap: true,
-  clean: true,
+  // dist/action is the committed GitHub Action bundle, built by tsup.action.config.ts.
+  clean: ["!action/**"],
   dts: { entry: { "core/index": "src/core/index.ts" } },
   banner: { js: "#!/usr/bin/env node" },
 });

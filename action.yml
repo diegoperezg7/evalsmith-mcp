@@ -1,0 +1,62 @@
+name: evalsmith RAG and agent evals
+description: Gate CI on RAG retrieval metrics, agent tool calls and prompt regressions, with an HTML report and job summary.
+author: Diego Pérez
+
+branding:
+  icon: bar-chart-2
+  color: orange
+
+inputs:
+  config:
+    description: Path to the evalsmith suite file. Dataset paths inside it are relative to the file.
+    required: false
+    default: evalsmith.yaml
+  fail-under:
+    description: >
+      Minimum values, one metric=value per line (e.g. recall@5=0.8, ndcg@10=0.7, mrr=0.6,
+      tool_calls=1, prompt_pass_rate=0.9). They add to the gates in the suite file and override
+      gates with the same name.
+    required: false
+    default: ""
+  report-file:
+    description: Optional path for a report file (.md, .json, .xml for JUnit, or .html).
+    required: false
+    default: ""
+  report-format:
+    description: Format of report-file (markdown, json, junit or html). Defaults to the file extension.
+    required: false
+    default: ""
+  html-report:
+    description: Optional path for the self-contained HTML report, to keep as a workflow artifact.
+    required: false
+    default: ""
+  upload-summary:
+    description: Append the Markdown report to the job summary.
+    required: false
+    default: "true"
+
+outputs:
+  verdict:
+    description: pass or fail. The step fails when a gate is below its threshold, a prompt regressed or the tool calls do not match.
+  failed-gates:
+    description: Number of gates below their threshold.
+  metrics:
+    description: Retrieval metrics as a JSON object, e.g. {"recall@5":0.9167,"mrr":0.8403}. Read one with fromJSON.
+  mrr:
+    description: Mean reciprocal rank of the retrieval run, empty without a retrieval section.
+  tool-calls:
+    description: Tool-call score (matched / expected calls), empty without an agent section.
+  prompt-pass-rate:
+    description: Candidate pass rate on the golden set, empty without a prompts section.
+  prompt-regressions:
+    description: Number of golden cases that pass on baseline and fail on candidate.
+  winner:
+    description: Winning configuration of the comparison, empty without a compare section.
+  report-file:
+    description: Path of report-file, empty when not requested.
+  html-report:
+    description: Path of the HTML report, empty when not requested.
+
+runs:
+  using: node24
+  main: dist/action/index.js

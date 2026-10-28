@@ -15,8 +15,13 @@ import { toMcpError } from "../../shared/errors.js";
 import { toolResult } from "../result.js";
 
 const InputSchema = z.object({
-  format: z.enum(["markdown", "json", "junit"]).default("markdown"),
-  name: z.string().default("evalsmith"),
+  format: z
+    .enum(["markdown", "json", "junit"])
+    .default("markdown")
+    .describe(
+      "markdown for a PR comment or job summary, json for storage and diffs, junit for CI test dashboards.",
+    ),
+  name: z.string().default("evalsmith").describe("Suite name shown in the report title."),
   retrieval: RetrievalResultSchema.optional().describe("structuredContent of evaluate_retrieval."),
   comparison: ComparisonResultSchema.optional().describe("structuredContent of compare_configs."),
   toolCalls: ToolCallResultSchema.optional().describe("structuredContent of check_tool_calls."),
@@ -41,7 +46,7 @@ export function registerGenerateReport(server: McpServer): void {
     {
       title: "Generate report",
       description:
-        "Turn the results of the other evalsmith tools into a Markdown summary, a JSON document or JUnit XML for CI dashboards. Optional gates (metric -> minimum) decide the overall pass/fail.",
+        "Turn the results of the other evalsmith tools into a Markdown summary, a JSON document or JUnit XML for CI dashboards. Use it last, passing the structuredContent of each tool you ran. Optional gates (metric -> minimum) decide the overall pass/fail; returns the rendered report and the pass flag.",
       inputSchema: InputSchema,
       outputSchema: OutputSchema,
       annotations: {

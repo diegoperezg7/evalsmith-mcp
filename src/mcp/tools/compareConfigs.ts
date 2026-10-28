@@ -36,7 +36,7 @@ export function registerCompareConfigs(server: McpServer): void {
     {
       title: "Compare retrieval configurations",
       description:
-        "Compare 2-3 retrieval configurations on the same qrels. Ranks them on a primary metric, attaches seeded paired-bootstrap confidence intervals, and says whether the winner's lead over the runner-up is significant (interval of the gap excludes zero).",
+        "Compare 2-3 retrieval configurations on the same qrels. Ranks them on a primary metric, attaches seeded paired-bootstrap confidence intervals, and says whether the winner's lead over the runner-up is significant (interval of the gap excludes zero). Use it before switching retriever, chunking or reranker, so a small gap on a few queries is not mistaken for a win.",
       inputSchema: InputSchema,
       outputSchema: ComparisonResultSchema,
       annotations: {

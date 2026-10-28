@@ -28,7 +28,7 @@ export function registerCheckToolCalls(server: McpServer): void {
     {
       title: "Check agent tool calls",
       description:
-        "Compare an agent's tool-call trace with the expected calls: right tool, right order (strict or lax) and arguments that satisfy exact / regex / subset / any matchers. Returns a pass flag, a score and a reason for every mismatch.",
+        "Compare an agent's tool-call trace with the expected calls: right tool, right order (strict or lax) and arguments that satisfy exact / regex / subset / any matchers. Use it to test an agent change against a known-good trace. Returns a pass flag, a score and a reason for every mismatch.",
       inputSchema: InputSchema,
       outputSchema: ToolCallResultSchema,
       annotations: {

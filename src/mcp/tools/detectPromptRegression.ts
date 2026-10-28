@@ -20,8 +20,11 @@ const InputSchema = z.object({
   candidate: OutputsSchema.describe("Outputs of the proposed prompt/model, keyed by case id."),
   judge: z
     .object({
-      enabled: z.boolean().default(false),
-      model: z.string().optional(),
+      enabled: z.boolean().default(false).describe("Set true to ask the judge."),
+      model: z
+        .string()
+        .optional()
+        .describe("Judge model; defaults to EVALSMITH_JUDGE_MODEL on the server."),
     })
     .optional()
     .describe(
@@ -43,7 +46,7 @@ export function registerDetectPromptRegression(server: McpServer, deps: Regressi
     {
       title: "Detect prompt regression",
       description:
-        "Run a golden set's deterministic checks (exact, regex, contains, JSON Schema, length) against baseline and candidate outputs. A regression is a case that passes on baseline and fails on candidate. An LLM judge can be enabled per call for a second opinion; the verdict only depends on the checks.",
+        "Run a golden set's deterministic checks (exact, regex, contains, JSON Schema, length) against baseline and candidate outputs. A regression is a case that passes on baseline and fails on candidate. An LLM judge can be enabled per call for a second opinion; the verdict only depends on the checks. Use it before shipping a prompt or model change.",
       inputSchema: InputSchema,
       outputSchema: RegressionResultSchema,
       // Annotations are per tool, not per call: with the judge enabled this tool

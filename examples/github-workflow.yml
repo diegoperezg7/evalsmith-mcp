@@ -1,0 +1,52 @@
+# Copy to .github/workflows/evals.yml in the repository that owns your RAG or agent.
+# It fails the pull request when a gate is below its threshold, a prompt change
+# regresses or the agent stops calling the expected tools.
+name: evals
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks: write # publish the JUnit report as a check run
+
+jobs:
+  evalsmith:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Produce the files your suite points at, e.g. run every eval query through
+      # the retriever and save { queryId: [docId, ...] } as evals/runs/current.json.
+      # - uses: actions/setup-node@v5
+      #   with:
+      #     node-version: 22
+      # - run: npm ci && npm run evals:retrieve
+
+      - name: Evaluate
+        id: evals
+        uses: diegoperezg7/evalsmith-mcp@v0
+        with:
+          config: evals/evalsmith.yaml
+          fail-under: |
+            recall@5=0.8
+            ndcg@10=0.7
+            tool_calls=1
+          report-file: evalsmith-report.xml
+          html-report: evalsmith-report.html
+
+      - name: Keep the HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: evalsmith-report
+          path: evalsmith-report.html
+
+      - name: Publish the JUnit report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: evalsmith-report.xml
+          check_name: evalsmith

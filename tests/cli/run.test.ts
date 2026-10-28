@@ -39,6 +39,17 @@ describe("evalsmith run", () => {
     });
   });
 
+  it("writes a self-contained HTML report from the .html extension", () => {
+    const dir = mkdtempSync(join(tmpdir(), "evalsmith-"));
+    const report = join(dir, "report.html");
+    const { code } = evalsmith("run", CONFIG, "--format", "json", "-r", report);
+    expect(code).toBe(0);
+    const html = readFileSync(report, "utf8");
+    expect(html.startsWith("<!doctype html>")).toBe(true);
+    expect(html).toContain('"verdict":"pass"');
+    expect(evalsmith("run", CONFIG, "--format", "html").stdout).toContain("<!doctype html>");
+  });
+
   it("exits 1 when a --fail-under gate is not met, and writes JUnit", () => {
     const dir = mkdtempSync(join(tmpdir(), "evalsmith-"));
     const report = join(dir, "report.xml");

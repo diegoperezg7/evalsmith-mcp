@@ -26,6 +26,7 @@ function reportFormatFor(file: string, explicit?: ReportFormat): ReportFormat {
   const ext = extname(file).toLowerCase();
   if (ext === ".xml") return "junit";
   if (ext === ".json") return "json";
+  if (ext === ".html" || ext === ".htm") return "html";
   return "markdown";
 }
 
@@ -41,13 +42,13 @@ export function buildRunCommand(): Command {
     )
     .addOption(
       new Option("-f, --format <format>", "stdout format")
-        .choices(["table", "json", "markdown"])
+        .choices(["table", "json", "markdown", "html"])
         .default(process.stdout.isTTY ? "table" : "json", "table on a TTY, json otherwise"),
     )
-    .option("-r, --report <file>", "also write a report (.md, .json or .xml for JUnit)")
+    .option("-r, --report <file>", "also write a report (.md, .json, .html or .xml for JUnit)")
     .addOption(
       new Option("--report-format <format>", "report format, overrides the file extension").choices(
-        ["markdown", "json", "junit"],
+        ["markdown", "json", "junit", "html"],
       ),
     )
     .action(
@@ -55,7 +56,7 @@ export function buildRunCommand(): Command {
         configPath: string,
         opts: {
           failUnder: Record<string, number>;
-          format: "table" | "json" | "markdown";
+          format: "table" | "json" | "markdown" | "html";
           report?: string;
           reportFormat?: ReportFormat;
         },
@@ -63,9 +64,12 @@ export function buildRunCommand(): Command {
         const { config, baseDir } = loadSuiteConfig(configPath);
         const suite = await runSuite(config, baseDir, { gates: opts.failUnder });
 
-        const render = { table: formatSuiteTable, json: formatJson, markdown: formatMarkdown }[
-          opts.format
-        ];
+        const render = {
+          table: formatSuiteTable,
+          json: formatJson,
+          markdown: formatMarkdown,
+          html: (s: typeof suite) => generateReport(s, "html"),
+        }[opts.format];
         process.stdout.write(render(suite).trimEnd() + "\n");
 
         if (opts.report) {

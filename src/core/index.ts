@@ -6,4 +6,5 @@ export * from "./regression.js";
 export * from "./judge.js";
 export * from "./gates.js";
 export * from "./report.js";
+export { embedJson, htmlReportData, toHtml, type HtmlReportData } from "./reportHtml.js";
 export * from "./suite.js";

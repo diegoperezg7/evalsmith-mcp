@@ -1,7 +1,8 @@
 import { suitePassed } from "./gates.js";
+import { toHtml } from "./reportHtml.js";
 import type { SuiteResult } from "./schemas.js";
 
-export type ReportFormat = "markdown" | "json" | "junit";
+export type ReportFormat = "markdown" | "json" | "junit" | "html";
 
 const fmt = (v: number | null | undefined) =>
   v === null || v === undefined ? "n/a" : v.toFixed(4);
@@ -196,5 +197,6 @@ export function generateReport(suite: SuiteResult, format: ReportFormat): string
   if (format === "json")
     return JSON.stringify({ passed: suitePassed(suite), ...suite }, null, 2) + "\n";
   if (format === "junit") return toJUnit(suite);
+  if (format === "html") return toHtml(suite);
   return toMarkdown(suite);
 }

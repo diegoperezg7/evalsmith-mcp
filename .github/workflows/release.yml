@@ -31,6 +31,8 @@ jobs:
         run: npm install -g npm@11
 
       - run: npm ci
+      # The HTML report tests open it in a real browser.
+      - run: npx playwright install --with-deps chromium
       - run: npm run check
       - run: node scripts/check-versions.mjs "${GITHUB_REF_NAME#v}"
 

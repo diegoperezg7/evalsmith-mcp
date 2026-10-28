@@ -2,6 +2,7 @@ export * from "./schemas.js";
 export * from "./retrieval.js";
 export * from "./compare.js";
 export * from "./toolCalls.js";
+export * from "./traces.js";
 export * from "./regression.js";
 export * from "./judge.js";
 export * from "./gates.js";

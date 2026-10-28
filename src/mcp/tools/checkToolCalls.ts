@@ -5,14 +5,15 @@ import {
   ExpectedCallSchema,
   OrderModeSchema,
   ToolCallResultSchema,
-  ToolCallSchema,
+  TraceSchema,
   checkToolCalls,
+  normalizeTrace,
 } from "../../core/index.js";
 import { toMcpError } from "../../shared/errors.js";
 import { toolResult } from "../result.js";
 
 const InputSchema = z.object({
-  trace: z.array(ToolCallSchema).describe("Tool calls the agent made, in order."),
+  trace: TraceSchema,
   expected: z
     .array(ExpectedCallSchema)
     .min(1)
@@ -28,7 +29,7 @@ export function registerCheckToolCalls(server: McpServer): void {
     {
       title: "Check agent tool calls",
       description:
-        "Compare an agent's tool-call trace with the expected calls: right tool, right order (strict or lax) and arguments that satisfy exact / regex / subset / any matchers. Use it to test an agent change against a known-good trace. Returns a pass flag, a score and a reason for every mismatch.",
+        "Compare an agent's tool-call trace (evalsmith, Anthropic Messages or OpenAI format, as logged) with the expected calls: right tool, right order (strict or lax) and arguments that satisfy exact / regex / subset / any matchers. Use it to test an agent change against a known-good trace. Returns a pass flag, a score and a reason for every mismatch.",
       inputSchema: InputSchema,
       outputSchema: ToolCallResultSchema,
       annotations: {
@@ -40,7 +41,7 @@ export function registerCheckToolCalls(server: McpServer): void {
     },
     async ({ trace, expected, order }) => {
       try {
-        return toolResult(checkToolCalls(trace, expected, order));
+        return toolResult(checkToolCalls(normalizeTrace(trace), expected, order));
       } catch (err) {
         throw toMcpError(err, "check_tool_calls");
       }

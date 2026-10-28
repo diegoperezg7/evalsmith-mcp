@@ -237,7 +237,18 @@ node dist/cli/index.js run examples/evalsmith.yaml
 
 ### Connect an MCP client (stdio)
 
-Most desktop MCP clients read an `mcpServers` block like this ([`examples/mcp-client-config.json`](examples/mcp-client-config.json)):
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=evalsmith&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImV2YWxzbWl0aC1tY3AiXX0=)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=evalsmith&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22evalsmith-mcp%22%5D%7D)
+
+From a terminal:
+
+```bash
+claude mcp add evalsmith -- npx -y evalsmith-mcp     # Claude Code
+codex mcp add evalsmith -- npx -y evalsmith-mcp      # Codex CLI
+code --add-mcp '{"name":"evalsmith","command":"npx","args":["-y","evalsmith-mcp"]}'   # VS Code
+```
+
+Other desktop MCP clients read an `mcpServers` block like this ([`examples/mcp-client-config.json`](examples/mcp-client-config.json)):
 
 ```json
 {
@@ -468,6 +479,8 @@ examples/
 npm run check     # typecheck + eslint + prettier + vitest
 npm run inspect   # MCP Inspector against the built stdio server
 ```
+
+Releases come from tags: `npm version minor && git push --follow-tags` bumps `package.json`, `server.json` and `src/shared/version.ts` together, and [`release.yml`](.github/workflows/release.yml) publishes to npm with provenance, to the MCP Registry and to GitHub Releases. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

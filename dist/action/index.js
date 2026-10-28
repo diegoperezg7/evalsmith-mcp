@@ -34610,7 +34610,7 @@ function suitePassed(suite) {
 import { createHash } from "crypto";
 
 // src/shared/version.ts
-var VERSION = "0.1.0";
+var VERSION = "0.2.0";
 
 // src/core/reportHtmlAssets.ts
 var DARK = `

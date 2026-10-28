@@ -103,7 +103,9 @@ describe("evalsmith run", () => {
     expect(evalsmith("run", "--help").code).toBe(0);
     const version = evalsmith("--version");
     expect(version.code).toBe(0);
-    expect(version.stdout.trim()).toBe("0.1.0");
+    expect(version.stdout.trim()).toBe(
+      JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version,
+    );
   });
 });
 

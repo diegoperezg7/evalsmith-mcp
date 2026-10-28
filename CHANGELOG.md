@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `run_suite` tool: runs an `evalsmith.yaml` from the workspace like `evalsmith run`, reading only inside `EVALSMITH_ROOT`.
+- `check_tool_calls` and suite traces accept Anthropic Messages, OpenAI Chat and OpenAI Responses transcripts as logged, as well as evalsmith calls.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added

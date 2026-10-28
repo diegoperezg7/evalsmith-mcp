@@ -77,6 +77,7 @@ flowchart TB
         T3[check_tool_calls]
         T4[detect_prompt_regression]
         T5[generate_report]
+        T6[run_suite]
     end
     subgraph Resources
         R1["evalsmith://examples/{name}<br/>12 synthetic datasets + suite"]
@@ -93,22 +94,25 @@ flowchart TB
     classDef tool fill:#ffedd5,stroke:#c2410c,color:#431407
     classDef res fill:#e0f2fe,stroke:#0369a1,color:#082f49
     classDef prom fill:#ede9fe,stroke:#6d28d9,color:#2e1065
-    class T1,T2,T3,T4,T5 tool
+    class T1,T2,T3,T4,T5,T6 tool
     class R1 res
     class P1,P2,P3 prom
 ```
 
 ### Tools
 
-Every tool declares an input and an output Zod schema, returns `structuredContent` plus a JSON text block, and is annotated `readOnly`. Four tools are also idempotent and closed-world. `detect_prompt_regression` is declared open-world and non-idempotent: annotations are per tool, and with the judge enabled it calls an external model whose answers can vary. With the judge off (the default) it behaves like the others.
+Every tool declares an input and an output Zod schema, returns `structuredContent` plus a JSON text block, and is annotated `readOnly` and non-destructive. Four tools are also idempotent and closed-world. `detect_prompt_regression` and `run_suite` are declared open-world and non-idempotent: annotations are per tool, and with the judge enabled they call an external model whose answers can vary. With the judge off (the default) they behave like the others.
 
-| Tool                       | Input                                                                                 | Output                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `evaluate_retrieval`       | `qrels`, `run`, optional `k` list                                                     | Mean recall/precision/nDCG/hit rate at every k, MRR, per-query values, skipped and missing queries |
-| `compare_configs`          | `qrels`, 2-3 `{name, run}`, primary `metric`, `bootstrap {samples, seed, confidence}` | Ranking with intervals, winner, runner-up, paired interval of the gap, `significant`               |
-| `check_tool_calls`         | `trace`, `expected`, `order: strict \| lax`                                           | `passed`, score, matched position and reasons per expected call, unexpected calls                  |
-| `detect_prompt_regression` | `golden`, `baseline`, `candidate`, optional `judge {enabled}`                         | Verdict, pass rates, regressions, improvements, per-case failures, judge votes when enabled        |
-| `generate_report`          | Any of the results above, `gates`, `format: markdown \| json \| junit`                | `passed`, rendered report                                                                          |
+| Tool                       | Input                                                                                                           | Output                                                                                             |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `evaluate_retrieval`       | `qrels`, `run`, optional `k` list                                                                               | Mean recall/precision/nDCG/hit rate at every k, MRR, per-query values, skipped and missing queries |
+| `compare_configs`          | `qrels`, 2-3 `{name, run}`, primary `metric`, `bootstrap {samples, seed, confidence}`                           | Ranking with intervals, winner, runner-up, paired interval of the gap, `significant`               |
+| `check_tool_calls`         | `trace` as logged (evalsmith, Anthropic Messages, OpenAI Chat or Responses), `expected`, `order: strict \| lax` | `passed`, score, matched position and reasons per expected call, unexpected calls                  |
+| `detect_prompt_regression` | `golden`, `baseline`, `candidate`, optional `judge {enabled}`                                                   | Verdict, pass rates, regressions, improvements, per-case failures, judge votes when enabled        |
+| `generate_report`          | Any of the results above, `gates`, `format: markdown \| json \| junit`                                          | `passed`, rendered report                                                                          |
+| `run_suite`                | Optional `config` path to an `evalsmith.yaml`, `gates`, `judge`, `format`                                       | `passed`, rendered report and every section's results, read from the suite's files                 |
+
+`run_suite` runs the same suites as `evalsmith run`, so a client can evaluate data that lives in files instead of pasting it into the conversation. It only reads inside the workspace root (`EVALSMITH_ROOT`, the directory the server started in by default), following symlinks before it checks, and runs the bundled example suite when no `config` is given.
 
 Bad input (unknown metric, duplicate config names, qrels with no relevant documents) comes back as an `InvalidParams` tool error with a message the model can act on. A judge endpoint that is down or returns an HTTP error is an `InternalError`.
 
@@ -144,7 +148,7 @@ sequenceDiagram
 
     User->>Host: "Is the reranker worth it on our help-center set?"
     Host->>ES: initialize, tools/list, resources/list
-    ES-->>Host: 5 tools + JSON Schemas, 13 resources
+    ES-->>Host: 6 tools + JSON Schemas, 13 resources
     Host->>ES: resources/read evalsmith://examples/rag-qrels (+ 3 runs)
     ES-->>Host: qrels and runs as JSON
     Host->>ES: tools/call compare_configs {metric: "ndcg@5", configs: [...]}
@@ -236,7 +240,7 @@ git clone https://github.com/diegoperezg7/evalsmith-mcp.git
 cd evalsmith-mcp
 npm ci            # also builds dist/ through the prepare script
 npx playwright install chromium   # the HTML report tests open it in a real browser
-npm test          # metrics, MCP in-memory + HTTP, CLI exit codes, HTML report, action
+npm test          # metrics, traces, MCP in-memory + HTTP, CLI exit codes, HTML report, action
 
 node dist/cli/index.js run examples/evalsmith.yaml
 ```
@@ -278,14 +282,15 @@ curl -s localhost:3333/healthz                  # {"status":"ok","version":"0.1.
 npx @modelcontextprotocol/inspector             # connect to http://127.0.0.1:3333/mcp
 ```
 
-| Variable                                      | Default                     | Purpose                                           |
-| --------------------------------------------- | --------------------------- | ------------------------------------------------- |
-| `EVALSMITH_TRANSPORT`                         | `stdio`                     | `stdio` or `http`                                 |
-| `EVALSMITH_HTTP_HOST` / `EVALSMITH_HTTP_PORT` | `127.0.0.1` / `3333`        | HTTP bind address                                 |
-| `EVALSMITH_JUDGE_BASE_URL`                    | `http://localhost:11434/v1` | OpenAI-compatible endpoint for the optional judge |
-| `EVALSMITH_JUDGE_MODEL`                       | `llama3.1:8b`               | Judge model                                       |
-| `EVALSMITH_JUDGE_API_KEY`                     | unset                       | Only for hosted endpoints                         |
-| `LOG_LEVEL`                                   | `info`                      | pino level; logs always go to stderr              |
+| Variable                                      | Default                     | Purpose                                             |
+| --------------------------------------------- | --------------------------- | --------------------------------------------------- |
+| `EVALSMITH_TRANSPORT`                         | `stdio`                     | `stdio` or `http`                                   |
+| `EVALSMITH_HTTP_HOST` / `EVALSMITH_HTTP_PORT` | `127.0.0.1` / `3333`        | HTTP bind address                                   |
+| `EVALSMITH_JUDGE_BASE_URL`                    | `http://localhost:11434/v1` | OpenAI-compatible endpoint for the optional judge   |
+| `EVALSMITH_JUDGE_MODEL`                       | `llama3.1:8b`               | Judge model                                         |
+| `EVALSMITH_JUDGE_API_KEY`                     | unset                       | Only for hosted endpoints                           |
+| `EVALSMITH_ROOT`                              | current directory           | Directory `run_suite` may read suites and data from |
+| `LOG_LEVEL`                                   | `info`                      | pino level; logs always go to stderr                |
 
 ---
 

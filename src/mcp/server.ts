@@ -15,6 +15,7 @@ import { registerCompareConfigs } from "./tools/compareConfigs.js";
 import { registerDetectPromptRegression } from "./tools/detectPromptRegression.js";
 import { registerEvaluateRetrieval } from "./tools/evaluateRetrieval.js";
 import { registerGenerateReport } from "./tools/generateReport.js";
+import { registerRunSuite } from "./tools/runSuite.js";
 
 const INSTRUCTIONS = `
 evalsmith scores retrieval-augmented generation and agents with deterministic
@@ -26,6 +27,7 @@ judge in detect_prompt_regression.
 - check_tool_calls: agent trace vs expected calls with argument matchers.
 - detect_prompt_regression: golden set checks on baseline vs candidate outputs.
 - generate_report: Markdown, JSON or JUnit XML from the results above, with gates.
+- run_suite: run an evalsmith.yaml from the workspace, every section plus gates, like CI.
 
 No data of your own yet? Read the evalsmith://examples/{name} resources.
 Report numbers exactly as returned; do not round or recompute them.
@@ -47,6 +49,7 @@ export function buildServer(deps: ServerDeps): McpServer {
   registerCheckToolCalls(server);
   registerDetectPromptRegression(server, { config: deps.config, fetchImpl: deps.fetchImpl });
   registerGenerateReport(server);
+  registerRunSuite(server, { config: deps.config, fetchImpl: deps.fetchImpl });
   registerExampleResources(server);
   registerPrompts(server);
 

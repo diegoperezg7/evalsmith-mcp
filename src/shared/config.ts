@@ -4,6 +4,8 @@ const ConfigSchema = z.object({
   EVALSMITH_TRANSPORT: z.enum(["stdio", "http"]).default("stdio"),
   EVALSMITH_HTTP_PORT: z.coerce.number().int().min(0).max(65535).default(3333),
   EVALSMITH_HTTP_HOST: z.string().default("127.0.0.1"),
+  /** run_suite only reads suites and data inside this directory. */
+  EVALSMITH_ROOT: z.string().default(process.cwd()),
   EVALSMITH_JUDGE_BASE_URL: z.string().url().default("http://localhost:11434/v1"),
   EVALSMITH_JUDGE_MODEL: z.string().default("llama3.1:8b"),
   EVALSMITH_JUDGE_API_KEY: z.string().optional(),

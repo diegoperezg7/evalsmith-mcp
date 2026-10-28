@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -47,7 +50,7 @@ async function call(name: string, args: Record<string, unknown>) {
 }
 
 describe("MCP surface", () => {
-  it("lists five tools, each with input and output schemas", async () => {
+  it("lists six tools, each with input and output schemas", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       "check_tool_calls",
@@ -55,13 +58,14 @@ describe("MCP surface", () => {
       "detect_prompt_regression",
       "evaluate_retrieval",
       "generate_report",
+      "run_suite",
     ]);
     for (const t of tools) {
       expect(t.outputSchema?.type).toBe("object");
       expect(t.annotations?.readOnlyHint).toBe(true);
       expect(t.annotations?.destructiveHint).toBe(false);
-      // Only the tool that can call an external judge is open-world and non-idempotent.
-      const judged = t.name === "detect_prompt_regression";
+      // Only the tools that can call an external judge are open-world and non-idempotent.
+      const judged = t.name === "detect_prompt_regression" || t.name === "run_suite";
       expect(t.annotations?.openWorldHint).toBe(judged);
       expect(t.annotations?.idempotentHint).toBe(!judged);
     }
@@ -218,5 +222,114 @@ describe("tools", () => {
     expect(res.isError).toBe(true);
     expect(res.content[0]!.text).toMatch(/-32603/);
     expect(res.content[0]!.text).toMatch(/HTTP 502/);
+  });
+});
+
+describe("run_suite", () => {
+  let workspace: string;
+  let outside: string;
+  let local: Client;
+
+  beforeAll(async () => {
+    workspace = mkdtempSync(join(tmpdir(), "evalsmith-ws-"));
+    outside = mkdtempSync(join(tmpdir(), "evalsmith-out-"));
+    mkdirSync(join(workspace, "evals"));
+    writeFileSync(join(workspace, "evals/qrels.json"), '{"q1":{"d1":1},"q2":{"d2":1}}');
+    writeFileSync(join(workspace, "evals/run.json"), '{"q1":["d1"],"q2":["d9","d2"]}');
+    // An OpenAI Chat transcript, as an agent framework would log it.
+    writeFileSync(
+      join(workspace, "evals/trace.json"),
+      JSON.stringify([
+        { role: "user", content: "Find Acme" },
+        {
+          role: "assistant",
+          tool_calls: [{ function: { name: "search_customers", arguments: '{"query":"Acme"}' } }],
+        },
+      ]),
+    );
+    writeFileSync(
+      join(workspace, "evals/expected.json"),
+      '[{"tool":"search_customers","args":{"query":{"type":"exact","value":"Acme"}}}]',
+    );
+    writeFileSync(
+      join(workspace, "evals/evalsmith.yaml"),
+      [
+        "name: workspace-suite",
+        "retrieval: { qrels: qrels.json, run: run.json, k: [1, 2] }",
+        "agent: { trace: trace.json, expected: expected.json }",
+        "gates: { recall@1: 0.5, tool_calls: 1 }",
+      ].join("\n"),
+    );
+    writeFileSync(join(outside, "qrels.json"), '{"q1":{"d1":1}}');
+    writeFileSync(
+      join(workspace, "evals/escape.yaml"),
+      `retrieval: { qrels: ${join(outside, "qrels.json")}, run: run.json }`,
+    );
+    symlinkSync(join(outside, "qrels.json"), join(workspace, "evals/linked.json"));
+    writeFileSync(
+      join(workspace, "evals/linked.yaml"),
+      "retrieval: { qrels: linked.json, run: run.json }",
+    );
+
+    const server = buildServer({ config: loadConfig({ EVALSMITH_ROOT: workspace }) });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    local = new Client({ name: "workspace-client", version: "1.0.0" });
+    await Promise.all([server.connect(serverTransport), local.connect(clientTransport)]);
+  });
+
+  afterAll(async () => {
+    await local.close();
+    rmSync(workspace, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
+
+  const run = async (args: Record<string, unknown>) =>
+    (await local.callTool({ name: "run_suite", arguments: args })) as {
+      isError?: boolean;
+      structuredContent?: Record<string, unknown>;
+      content: { text: string }[];
+    };
+
+  it("runs the bundled example suite when no config is given", async () => {
+    const res = await call("run_suite", {});
+    expect(res.isError).toBeFalsy();
+    const out = res.structuredContent as { passed: boolean; suite: { name: string } };
+    expect(out.suite.name).toBe("ledgerly-support-assistant");
+    expect(out.passed).toBe(true);
+    expect(judgeFetch).not.toHaveBeenCalled();
+  });
+
+  it("runs a suite from the workspace, reading an OpenAI trace as logged", async () => {
+    const res = await run({ config: "evals/evalsmith.yaml", format: "junit" });
+    expect(res.isError).toBeFalsy();
+    const out = res.structuredContent as {
+      passed: boolean;
+      format: string;
+      report: string;
+      suite: { toolCalls: { passed: boolean }; retrieval: { metrics: Record<string, number> } };
+    };
+    expect(out.passed).toBe(true);
+    expect(out.suite.toolCalls.passed).toBe(true);
+    expect(out.suite.retrieval.metrics["recall@1"]).toBe(0.5);
+    expect(out.report).toMatch(/^<\?xml/);
+  });
+
+  it("lets gates passed in the call override the suite's", async () => {
+    const res = await run({ config: "evals/evalsmith.yaml", gates: { "recall@1": 0.9 } });
+    expect((res.structuredContent as { passed: boolean }).passed).toBe(false);
+  });
+
+  it("refuses files outside the workspace root, including through symlinks", async () => {
+    for (const config of ["../evalsmith.yaml", "evals/escape.yaml", "evals/linked.yaml"]) {
+      const res = await run({ config });
+      expect(res.isError, config).toBe(true);
+      expect(res.content[0]!.text, config).toMatch(/outside the workspace root|Cannot read/);
+    }
+  });
+
+  it("rejects unknown gates", async () => {
+    const res = await run({ config: "evals/evalsmith.yaml", gates: { f1: 0.5 } });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toMatch(/unknown gate metric/);
   });
 });

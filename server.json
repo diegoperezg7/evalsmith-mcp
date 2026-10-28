@@ -17,6 +17,12 @@
       },
       "environmentVariables": [
         {
+          "name": "EVALSMITH_ROOT",
+          "description": "Directory run_suite may read suites and data from (default: the directory the server starts in)",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
           "name": "EVALSMITH_JUDGE_BASE_URL",
           "description": "OpenAI-compatible endpoint for the optional LLM judge (default: Ollama on localhost)",
           "isRequired": false,

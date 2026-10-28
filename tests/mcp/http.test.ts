@@ -26,7 +26,7 @@ describe("Streamable HTTP (stateless)", () => {
     await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`)));
 
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(5);
+    expect(tools).toHaveLength(6);
 
     // Two calls in a row: a reused stateless transport would reject the second one.
     for (const order of ["strict", "lax"] as const) {

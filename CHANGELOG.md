@@ -6,15 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- `run_suite` tool: runs an `evalsmith.yaml` from the workspace like `evalsmith run`, reading only inside `EVALSMITH_ROOT`.
-- `check_tool_calls` and suite traces accept Anthropic Messages, OpenAI Chat and OpenAI Responses transcripts as logged, as well as evalsmith calls.
-
 ## [0.2.0] - 2026-10-28
 
 ### Added
 
+- `run_suite` tool: runs an `evalsmith.yaml` from the workspace like `evalsmith run`, reading only inside `EVALSMITH_ROOT`.
+- `check_tool_calls` and suite traces accept Anthropic Messages, OpenAI Chat and OpenAI Responses transcripts as logged, as well as evalsmith calls.
 - Self-contained HTML report (`--format html`, `-r report.html`, `--report-format html`): one file with no network access, light and dark mode, the verdict with a card per gate, retrieval metrics per k with bootstrap intervals, the configuration comparison with its intervals and winner, expected vs. actual tool calls with the matching drawn, and baseline vs. candidate cases with their failing checks. Dataset text is embedded as JSON and rendered as text under a hash-based Content-Security-Policy.
 - GitHub Action (`uses: diegoperezg7/evalsmith-mcp@v0`) on `node24`, with inputs `config`, `fail-under`, `report-file`, `report-format`, `html-report` and `upload-summary`, outputs for the verdict, the main metrics and the report paths, and a Markdown job summary. It calls the core directly and suspends workflow commands while it prints dataset text.
 - `check_tool_calls` returns `calls`, the tool names of the trace in order.

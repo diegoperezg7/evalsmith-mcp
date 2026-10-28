@@ -221,6 +221,7 @@ The optional judge sends both outputs to any OpenAI-compatible `/chat/completion
 ```bash
 npx -y evalsmith-mcp                       # MCP server on stdio
 npm install -g evalsmith-mcp               # or install the `evalsmith` CLI and `evalsmith-mcp` server
+docker build -t evalsmith-mcp . && docker run --rm -i evalsmith-mcp   # or run the server in a container
 ```
 
 To run the bundled examples and the tests from source:

@@ -13,7 +13,7 @@
 [![Paid API keys](https://img.shields.io/badge/paid%20API%20keys-none-555)](#design-decisions)
 [![npm](https://img.shields.io/npm/v/evalsmith-mcp?color=c2410c)](https://www.npmjs.com/package/evalsmith-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![M8ven Score](https://m8ven.ai/badge/mcp/diegoperezg7/evalsmith-mcp)](https://m8ven.ai/mcp/diegoperezg7/evalsmith-mcp?s=readme)
+[![M8ven Score](https://m8ven.ai/badge/mcp/diegoperezg7-evalsmith-mcp-1ocx4x?v=8b1ffda277f12a412a34c6d3f0b18eff)](https://m8ven.ai/mcp/diegoperezg7-evalsmith-mcp-1ocx4x?s=readme)
 [![Glama score](https://glama.ai/mcp/servers/diegoperezg7/evalsmith-mcp/badges/score.svg)](https://glama.ai/mcp/servers/diegoperezg7/evalsmith-mcp)
 
 </div>

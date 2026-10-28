@@ -49,7 +49,12 @@ export function registerDetectPromptRegression(server: McpServer, deps: Regressi
       // Annotations are per tool, not per call: with the judge enabled this tool
       // reaches an external model whose answers can vary, so it is declared
       // open-world and non-idempotent. With the judge off it is neither.
-      annotations: { readOnlyHint: true, idempotentHint: false, openWorldHint: true },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
     },
     async ({ golden, baseline, candidate, judge }) => {
       try {

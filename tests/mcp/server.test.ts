@@ -59,6 +59,7 @@ describe("MCP surface", () => {
     for (const t of tools) {
       expect(t.outputSchema?.type).toBe("object");
       expect(t.annotations?.readOnlyHint).toBe(true);
+      expect(t.annotations?.destructiveHint).toBe(false);
       // Only the tool that can call an external judge is open-world and non-idempotent.
       const judged = t.name === "detect_prompt_regression";
       expect(t.annotations?.openWorldHint).toBe(judged);

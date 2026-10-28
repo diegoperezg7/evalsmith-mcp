@@ -39,7 +39,12 @@ export function registerCompareConfigs(server: McpServer): void {
         "Compare 2-3 retrieval configurations on the same qrels. Ranks them on a primary metric, attaches seeded paired-bootstrap confidence intervals, and says whether the winner's lead over the runner-up is significant (interval of the gap excludes zero).",
       inputSchema: InputSchema,
       outputSchema: ComparisonResultSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     async ({ qrels, configs, metric, k, bootstrap }) => {
       try {

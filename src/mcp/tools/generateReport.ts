@@ -44,7 +44,12 @@ export function registerGenerateReport(server: McpServer): void {
         "Turn the results of the other evalsmith tools into a Markdown summary, a JSON document or JUnit XML for CI dashboards. Optional gates (metric -> minimum) decide the overall pass/fail.",
       inputSchema: InputSchema,
       outputSchema: OutputSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     async ({ format, gates, ...results }) => {
       try {

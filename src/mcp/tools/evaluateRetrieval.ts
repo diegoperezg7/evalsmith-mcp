@@ -27,7 +27,12 @@ export function registerEvaluateRetrieval(server: McpServer): void {
         "Score a ranked retrieval run against relevance judgements (qrels). Returns recall@k, precision@k, nDCG@k (graded, linear gain), hit rate@k and MRR, averaged over judged queries, plus per-query values. Deterministic; no model calls.",
       inputSchema: InputSchema,
       outputSchema: RetrievalResultSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     async ({ qrels, run, k }) => {
       try {

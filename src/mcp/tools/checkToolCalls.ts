@@ -31,7 +31,12 @@ export function registerCheckToolCalls(server: McpServer): void {
         "Compare an agent's tool-call trace with the expected calls: right tool, right order (strict or lax) and arguments that satisfy exact / regex / subset / any matchers. Returns a pass flag, a score and a reason for every mismatch.",
       inputSchema: InputSchema,
       outputSchema: ToolCallResultSchema,
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     async ({ trace, expected, order }) => {
       try {

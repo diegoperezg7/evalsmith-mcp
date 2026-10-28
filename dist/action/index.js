@@ -3918,50 +3918,50 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative, options, skipNormalization) {
+    function resolveComponent(base, relative2, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse3(serialize(base, options), options);
-        relative = parse3(serialize(relative, options), options);
+        relative2 = parse3(serialize(relative2, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative.scheme) {
-        target.scheme = relative.scheme;
-        target.userinfo = relative.userinfo;
-        target.host = relative.host;
-        target.port = relative.port;
-        target.path = removeDotSegments(relative.path || "");
-        target.query = relative.query;
+      if (!options.tolerant && relative2.scheme) {
+        target.scheme = relative2.scheme;
+        target.userinfo = relative2.userinfo;
+        target.host = relative2.host;
+        target.port = relative2.port;
+        target.path = removeDotSegments(relative2.path || "");
+        target.query = relative2.query;
       } else {
-        if (relative.userinfo !== void 0 || relative.host !== void 0 || relative.port !== void 0) {
-          target.userinfo = relative.userinfo;
-          target.host = relative.host;
-          target.port = relative.port;
-          target.path = removeDotSegments(relative.path || "");
-          target.query = relative.query;
+        if (relative2.userinfo !== void 0 || relative2.host !== void 0 || relative2.port !== void 0) {
+          target.userinfo = relative2.userinfo;
+          target.host = relative2.host;
+          target.port = relative2.port;
+          target.path = removeDotSegments(relative2.path || "");
+          target.query = relative2.query;
         } else {
-          if (!relative.path) {
+          if (!relative2.path) {
             target.path = base.path;
-            if (relative.query !== void 0) {
-              target.query = relative.query;
+            if (relative2.query !== void 0) {
+              target.query = relative2.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative.path[0] === "/") {
-              target.path = removeDotSegments(relative.path);
+            if (relative2.path[0] === "/") {
+              target.path = removeDotSegments(relative2.path);
             } else {
               const baseHasAuthority = base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0;
               if (baseHasAuthority && !base.path) {
-                target.path = "/" + relative.path;
+                target.path = "/" + relative2.path;
               } else if (!base.path) {
-                target.path = relative.path;
+                target.path = relative2.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative2.path;
               }
               target.path = base.scheme === void 0 && !baseHasAuthority && target.path[0] !== "/" ? removeDotSegmentsRelative(target.path) : removeDotSegments(target.path);
             }
-            target.query = relative.query;
+            target.query = relative2.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -3969,7 +3969,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative.fragment;
+      target.fragment = relative2.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -17842,7 +17842,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     }
     return propValues;
   });
-  const isObject2 = isObject;
+  const isObject3 = isObject;
   const catchall = def.catchall;
   let value;
   const memo2 = globalConfig.memoizer;
@@ -17850,7 +17850,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input3 = payload.value;
-    if (!isObject2(input3)) {
+    if (!isObject3(input3)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -17986,7 +17986,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     return doc.compile();
   };
   let fastpass;
-  const isObject2 = isObject;
+  const isObject3 = isObject;
   const jit = !globalConfig.jitless;
   const allowsEval2 = allowsEval;
   const fastEnabled = jit && allowsEval2.value;
@@ -17995,7 +17995,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input3 = payload.value;
-    if (!isObject2(input3)) {
+    if (!isObject3(input3)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -34419,6 +34419,87 @@ function checkToolCalls(trace, expected, order = "strict") {
   };
 }
 
+// src/core/traces.ts
+var TraceSchema = external_exports.array(external_exports.record(external_exports.string(), external_exports.unknown())).describe(
+  'Tool calls the agent made, in order. Accepts evalsmith calls ({ "tool", "args" }), Anthropic Messages (messages or content blocks with type "tool_use"), OpenAI Chat messages with "tool_calls" and OpenAI Responses items with type "function_call"; other conversation items are skipped.'
+);
+var SKIPPED_TYPES = /* @__PURE__ */ new Set([
+  "text",
+  "thinking",
+  "redacted_thinking",
+  "tool_result",
+  "message",
+  "reasoning",
+  "function_call_output",
+  "input_text",
+  "output_text"
+]);
+var isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+function parseArguments(raw, where) {
+  if (raw === void 0 || raw === null || raw === "") return {};
+  if (isObject2(raw)) return raw;
+  if (typeof raw === "string") {
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error(`${where}: arguments are not valid JSON`);
+    }
+    if (isObject2(parsed)) return parsed;
+  }
+  throw new Error(`${where}: arguments must be a JSON object`);
+}
+function callsFromItem(item, where) {
+  if (typeof item.tool === "string") {
+    const parsed = ToolCallSchema.safeParse(item);
+    if (!parsed.success) throw new Error(`${where}: ${parsed.error.issues[0]?.message}`);
+    return [parsed.data];
+  }
+  if (item.type === "tool_use" && typeof item.name === "string") {
+    return [{ tool: item.name, args: parseArguments(item.input, where) }];
+  }
+  if (item.type === "function_call" && typeof item.name === "string") {
+    return [{ tool: item.name, args: parseArguments(item.arguments, where) }];
+  }
+  if (typeof item.role === "string") {
+    const calls = [];
+    if (Array.isArray(item.content)) {
+      item.content.forEach((block, i) => {
+        if (isObject2(block) && block.type === "tool_use") {
+          calls.push(...callsFromItem(block, `${where}.content[${i}]`));
+        }
+      });
+    }
+    if (Array.isArray(item.tool_calls)) {
+      item.tool_calls.forEach((tc, i) => {
+        const fn = isObject2(tc) ? tc.function : void 0;
+        if (!isObject2(fn) || typeof fn.name !== "string") {
+          throw new Error(`${where}.tool_calls[${i}]: expected { function: { name, arguments } }`);
+        }
+        calls.push({
+          tool: fn.name,
+          args: parseArguments(fn.arguments, `${where}.tool_calls[${i}]`)
+        });
+      });
+    }
+    return calls;
+  }
+  if (typeof item.type === "string" && SKIPPED_TYPES.has(item.type)) return [];
+  throw new Error(
+    `${where}: not a tool call or a conversation item (expected "tool", "role" or a known "type")`
+  );
+}
+function normalizeTrace(items) {
+  const calls = items.flatMap((item, i) => {
+    if (!isObject2(item)) throw new Error(`trace[${i}]: expected an object`);
+    return callsFromItem(item, `trace[${i}]`);
+  });
+  if (items.length > 0 && calls.length === 0) {
+    throw new Error("trace has items but no tool calls in a supported format");
+  }
+  return calls;
+}
+
 // src/core/regression.ts
 var import_ajv = __toESM(require_ajv(), 1);
 var ajv = new import_ajv.Ajv({ allErrors: true, strict: false });
@@ -35436,8 +35517,8 @@ function generateReport(suite, format) {
 
 // src/core/suite.ts
 var import_yaml = __toESM(require_dist(), 1);
-import { readFileSync } from "fs";
-import { dirname, resolve } from "path";
+import { readFileSync, realpathSync } from "fs";
+import { dirname, isAbsolute, relative, resolve } from "path";
 var path = external_exports.string().min(1);
 var SuiteConfigSchema = external_exports.object({
   name: external_exports.string().default("evalsmith"),
@@ -35473,18 +35554,35 @@ var SuiteConfigSchema = external_exports.object({
     });
   }
 });
-function loadSuiteConfig(file2) {
-  const raw = (0, import_yaml.parse)(readFileSync(file2, "utf8"));
+function resolveInside(baseDir, file2, root) {
+  const full = resolve(baseDir, file2);
+  if (!root) return full;
+  let real;
+  try {
+    real = realpathSync(full);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot read ${full}: ${reason}`, { cause: err });
+  }
+  const rel = relative(realpathSync(root), real);
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    throw new Error(`${file2} is outside the workspace root ${root}`);
+  }
+  return real;
+}
+function loadSuiteConfig(file2, root) {
+  const full = resolveInside(root ?? process.cwd(), file2, root);
+  const raw = (0, import_yaml.parse)(readFileSync(full, "utf8"));
   const parsed = SuiteConfigSchema.safeParse(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n");
     throw new Error(`Invalid config ${file2}:
 ${issues}`);
   }
-  return { config: parsed.data, baseDir: dirname(resolve(file2)) };
+  return { config: parsed.data, baseDir: dirname(full) };
 }
-function readJson(baseDir, file2, schema) {
-  const full = resolve(baseDir, file2);
+function readJson(baseDir, file2, schema, root) {
+  const full = resolveInside(baseDir, file2, root);
   let data;
   try {
     data = JSON.parse(readFileSync(full, "utf8"));
@@ -35502,10 +35600,11 @@ function readJson(baseDir, file2, schema) {
 async function runSuite(config2, baseDir, opts = {}) {
   const gates = { ...config2.gates, ...opts.gates };
   const env = opts.env ?? process.env;
+  const read = (file2, schema) => readJson(baseDir, file2, schema, opts.root);
   const result2 = { name: config2.name };
   if (config2.retrieval) {
-    const qrels = readJson(baseDir, config2.retrieval.qrels, QrelsSchema);
-    const run = readJson(baseDir, config2.retrieval.run, RunSchema);
+    const qrels = read(config2.retrieval.qrels, QrelsSchema);
+    const run = read(config2.retrieval.run, RunSchema);
     const ks = new Set(config2.retrieval.k);
     for (const name of Object.keys(gates)) {
       const k = metricK(name);
@@ -35515,10 +35614,10 @@ async function runSuite(config2, baseDir, opts = {}) {
   }
   if (config2.compare) {
     const qrelsFile = config2.compare.qrels ?? config2.retrieval?.qrels ?? "";
-    const qrels = readJson(baseDir, qrelsFile, QrelsSchema);
+    const qrels = read(qrelsFile, QrelsSchema);
     const configs = config2.compare.configs.map((c) => ({
       name: c.name,
-      run: readJson(baseDir, c.run, RunSchema)
+      run: read(c.run, RunSchema)
     }));
     result2.comparison = compareConfigs(
       qrels,
@@ -35529,21 +35628,21 @@ async function runSuite(config2, baseDir, opts = {}) {
     );
   }
   if (config2.agent) {
-    const trace = readJson(baseDir, config2.agent.trace, external_exports.array(ToolCallSchema));
-    const expected = readJson(baseDir, config2.agent.expected, external_exports.array(ExpectedCallSchema));
+    const trace = normalizeTrace(read(config2.agent.trace, TraceSchema));
+    const expected = read(config2.agent.expected, external_exports.array(ExpectedCallSchema));
     result2.toolCalls = checkToolCalls(trace, expected, config2.agent.order);
   }
   if (config2.prompts) {
-    const golden = readJson(baseDir, config2.prompts.golden, external_exports.array(GoldenCaseSchema));
-    const baseline = readJson(baseDir, config2.prompts.baseline, OutputsSchema);
-    const candidate = readJson(baseDir, config2.prompts.candidate, OutputsSchema);
+    const golden = read(config2.prompts.golden, external_exports.array(GoldenCaseSchema));
+    const baseline = read(config2.prompts.baseline, OutputsSchema);
+    const candidate = read(config2.prompts.candidate, OutputsSchema);
     const j = config2.prompts.judge;
-    const judge = j?.enabled ? createOpenAICompatibleJudge({
+    const judge = !j?.enabled ? void 0 : opts.judge !== void 0 ? opts.judge ?? void 0 : createOpenAICompatibleJudge({
       baseUrl: j.baseUrl ?? env.EVALSMITH_JUDGE_BASE_URL ?? "http://localhost:11434/v1",
       model: j.model ?? env.EVALSMITH_JUDGE_MODEL ?? "llama3.1:8b",
       apiKey: env.EVALSMITH_JUDGE_API_KEY || void 0,
       fetchImpl: opts.fetchImpl
-    }) : void 0;
+    });
     result2.regression = await detectPromptRegression(golden, baseline, candidate, judge);
   }
   return { ...result2, gates: evaluateGates(gates, result2) };

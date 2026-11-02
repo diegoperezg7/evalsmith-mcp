@@ -15,7 +15,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![M8ven Score](https://m8ven.ai/badge/mcp/diegoperezg7-evalsmith-mcp-1ocx4x?v=8b1ffda277f12a412a34c6d3f0b18eff)](https://m8ven.ai/mcp/diegoperezg7-evalsmith-mcp-1ocx4x?s=readme)
 [![Glama score](https://glama.ai/mcp/servers/diegoperezg7/evalsmith-mcp/badges/score.svg)](https://glama.ai/mcp/servers/diegoperezg7/evalsmith-mcp)
-[![Evalsmith MCP server](https://mcprush.com/badge/evalsmith-mcp/card.svg)](https://mcprush.com/to/evalsmith-mcp?ref=badge)
+[![Evalsmith MCP server](https://mcprush.com/badge/evalsmith-mcp/compact.svg)](https://mcprush.com/to/evalsmith-mcp?ref=badge)
 
 </div>
 
